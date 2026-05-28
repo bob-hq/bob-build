@@ -27,7 +27,7 @@ class _Obj:
 def test_attribute_scope_overlays_and_restores():
     obj = _Obj()
     with AttributeScope(obj, {"a": 9, "b": "added"}):
-        assert obj.a == 9 and obj.b == "added"
+        assert obj.a == 9 and obj.b == "added"  # ty:ignore[unresolved-attribute]
     assert obj.a == 1 and not hasattr(obj, "b")
 
 

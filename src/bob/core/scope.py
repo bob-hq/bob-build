@@ -8,15 +8,15 @@ class Scope(abc.ABC):
     """
 
     @abc.abstractmethod
-    def close(self): ...
+    def close(self) -> None: ...
 
-    def __enter__(self):
+    def __enter__(self) -> "Scope":
         return self
 
-    def __exit__(self, exc_type, exc, tb):
+    def __exit__(self, exc_type, exc, tb) -> None:
         self.close()
 
-    def __or__(self, other: Union["Scope", "ScopeList"]):
+    def __or__(self, other: Union["Scope", "ScopeList"]) -> "Scope":
         return ScopeList([self]) | other
 
 
@@ -25,14 +25,14 @@ class ScopeList(Scope):
     Create a scope from a list of scopes.
     """
 
-    def __init__(self, scopes: List[Scope]):
+    def __init__(self, scopes: List[Scope]) -> None:
         self.scopes = scopes
 
-    def close(self):
+    def close(self) -> None:
         for scope in self.scopes:
             scope.close()
 
-    def __or__(self, other: Union["Scope", "ScopeList"]):
+    def __or__(self, other: Union["Scope", "ScopeList"]) -> "Scope":
         if isinstance(other, ScopeList):
             return ScopeList(self.scopes + other.scopes)
         return ScopeList(self.scopes + [other])
@@ -43,7 +43,7 @@ class DictionaryScope(Scope):
     Overlay given dictionary onto another dictionary.
     """
 
-    def __init__(self, variables: Dict[str, Any], changes: Dict[str, Any]):
+    def __init__(self, variables: Dict[str, Any], changes: Dict[str, Any]) -> None:
         self.variables = variables
         self.changes = changes
 
@@ -56,7 +56,7 @@ class DictionaryScope(Scope):
 
         self.original = original
 
-    def close(self):
+    def close(self) -> None:
         for key in self.changes:
             # The `variables` mustn't have changed underneath our feet, we have no sensible action in that case.
             assert self.variables[key] == self.changes[key]
@@ -76,7 +76,7 @@ class AttributeScope(Scope):
     Overlay given attributes onto an object.
     """
 
-    def __init__(self, object: Any, changes: Dict[str, Any]):
+    def __init__(self, object: Any, changes: Dict[str, Any]) -> None:
         self.object = object
         self.changes = changes
 
@@ -89,7 +89,7 @@ class AttributeScope(Scope):
 
         self.original = original
 
-    def close(self):
+    def close(self) -> None:
         for key in self.changes:
             # The `object` mustn't have changed underneath our feet, we have no sensible action in that case.
             assert getattr(self.object, key) == self.changes[key]

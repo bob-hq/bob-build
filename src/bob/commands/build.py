@@ -35,7 +35,7 @@ PRETTY_COLORS = (
 NINJA_OUTPUT_BLACKLIST = {f"/{BOB_BUILD_SUBDIR}/", "ninja: Jobserver mode detected"}
 
 
-def _pretty_print(p: subprocess.Popen, separator: str, verbose: bool):
+def _pretty_print(p: subprocess.Popen, separator: str, verbose: bool) -> None:
     from rich.progress import (
         BarColumn,
         MofNCompleteColumn,
@@ -46,6 +46,8 @@ def _pretty_print(p: subprocess.Popen, separator: str, verbose: bool):
         TimeRemainingColumn,
     )
     from rich.text import Text
+
+    assert p.stdout is not None
 
     with Progress(
         SpinnerColumn(),
@@ -117,7 +119,7 @@ def build(
     no_jobserver: bool,
     allow_build_outside_builddir: bool,
     use_current_configs: bool,
-):
+) -> None:
     if j == 0:
         no_jobserver = True
 
@@ -127,13 +129,14 @@ def build(
     else:
         from bob.jobserver import jobserver
 
-        if j is None:
-            j = os.cpu_count()
+        resolved_j = os.cpu_count() if j is None else j
+        assert resolved_j is not None
+
         ctx = ExitStack()
         tmp_dir = tempfile.TemporaryDirectory()
         ctx.enter_context(tmp_dir)
         fifo_path = Path(tmp_dir.name) / "jobserver"
-        ctx.enter_context(jobserver(j, fifo_path))
+        ctx.enter_context(jobserver(resolved_j, fifo_path))
         j = None
 
     with ctx:

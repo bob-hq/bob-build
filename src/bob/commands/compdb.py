@@ -7,7 +7,7 @@ from bob.commands.configure import _configure
 from bob.constants import BOB_BUILD_SUBDIR, COMPDB_NAME
 
 
-def _compdb(builddir: str, dont_symlink=False):
+def _compdb(builddir: str, dont_symlink=False) -> None:
     build_compdb_path = Path(builddir) / COMPDB_NAME
 
     with open(build_compdb_path, "w") as f:
@@ -29,12 +29,11 @@ def _compdb(builddir: str, dont_symlink=False):
         COMPDB_NAME.symlink_to(build_compdb_path)
 
 
-# TODO: support a compdb which only contains things built for specific targets.
 def compdb(
     builddir: str,
     f: str,
     config: Sequence[str],
     dont_symlink: bool,
-):
+) -> None:
     _configure(builddir, Path(f), config, allow_build_outside_builddir=True)
     _compdb(builddir, dont_symlink=dont_symlink)

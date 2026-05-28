@@ -4,7 +4,7 @@ import subprocess
 
 import rich_click as click
 
-from bob.constants import BOB_BUILD_SUBDIR, BOB_TARGET_PREFIX, DEFAULT_BUILDDIR
+from bob.constants import BOB_BUILD_SUBDIR, DEFAULT_BUILDDIR
 
 
 @click.group
@@ -63,7 +63,6 @@ def complete_targets(ctx, param, incomplete: str):
         line.partition(b":")[0].decode()
         for line in p.stdout.splitlines()
         if line.startswith(incomplete.encode())
-        and not line.startswith(BOB_TARGET_PREFIX.encode())
         and f"/{BOB_BUILD_SUBDIR}/".encode() not in line
     ]
 
@@ -132,6 +131,11 @@ def build(**kwargs):
     default=str(DEFAULT_BUILDDIR),
     show_default=True,
 )
+@click.option(
+    "--force",
+    help="Remove the build directory even if it doesn't match a Bob build directory.",
+    is_flag=True,
+)
 def clean(**kwargs):
     """Clean all built files."""
 
@@ -166,7 +170,7 @@ def compdb(**kwargs):
 @click.option(
     "--shell", help="The shell to install completions for (default uses $SHELL)"
 )
-@click.option("-y", help="Edit shell RC files without prompting")
+@click.option("-y", help="Edit shell RC files without prompting", is_flag=True)
 def completions(**kwargs):
     """Install shell completions for Bob."""
 

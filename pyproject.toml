@@ -18,4 +18,16 @@ build-backend = "uv_build"
 ignore = ["F403", "F405"]
 
 [dependency-groups]
-dev = ["pytest>=9.0.3"]
+dev = [
+    "pre-commit>=4.6.0",
+    "pytest>=9.0.3",
+    "pytest-xdist>=3.8.0",
+    "ruff>=0.15.14",
+    "ty>=0.0.40",
+]
+
+[tool.ruff]
+exclude = ["src/bob/external/**"]
+
+[tool.ty.src]
+exclude = ["src/bob/external/**"]

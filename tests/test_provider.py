@@ -8,7 +8,7 @@ from conftest import assert_output_contains_needles
 def test_provider_swaps_value_inside_scope(bob):
     bob.write("""
         p = Provider("base")
-        echo = rule("echo $v > $out", v="x")
+        echo = Rule("echo $v > $out", v="x")
         with p.provide("override"):
             echo("inside.txt", v=p.get())
         echo("outside.txt", v=p.get())
@@ -21,7 +21,7 @@ def test_provider_swaps_value_inside_scope(bob):
 def test_provider_optional_returns_default(bob):
     bob.write("""
         p = Provider()
-        rule("echo $v > $out", v=p.get(optional=True, default="fb")).build("out.txt")
+        Rule("echo $v > $out", v=p.get(optional=True, default="fb")).build("out.txt")
     """)
     bob.run("build")
     assert bob.output_text("out.txt").strip() == "fb"
@@ -29,8 +29,8 @@ def test_provider_optional_returns_default(bob):
 
 def test_rule_provider_swaps_implementation(bob):
     bob.write("""
-        real = rule("echo real > $out")
-        stub = rule("echo stub > $out")
+        real = Rule("echo real > $out")
+        stub = Rule("echo stub > $out")
         real_provider = RuleProvider(real)
         with real_provider.provide(stub):
             real_provider("first.txt")
@@ -43,8 +43,8 @@ def test_rule_provider_swaps_implementation(bob):
 
 def test_rule_provider_rejects_incompatible_single_input(bob):
     bob.write("""
-        single = rule("cat $in > $out", single_input=True)
-        multi = rule("cat $in > $out")
+        single = Rule("cat $in > $out", single_input=True)
+        multi = Rule("cat $in > $out")
         p = RuleProvider(single)
         p.provide(multi)
     """)
@@ -57,8 +57,8 @@ def test_rule_provider_rejects_incompatible_single_input(bob):
 
 def test_rule_provider_rejects_incompatible_single_output(bob):
     bob.write("""
-        single = rule("echo > $out", single_output=True)
-        multi = rule("echo > $out")
+        single = Rule("echo > $out", single_output=True)
+        multi = Rule("echo > $out")
         p = RuleProvider(single)
         p.provide(multi)
     """)
@@ -66,11 +66,26 @@ def test_rule_provider_rejects_incompatible_single_output(bob):
     assert_output_contains_needles(r, "ValueError", "single_output")
 
 
+def test_provider_extend_appends_to_current(bob):
+    """`Provider.extend` adds to the current value within its scope and
+    restores the prior value on exit."""
+    bob.write("""
+        p = Provider(["a"])
+        echo = Rule("echo $v > $out", v="x")
+        with p.extend(["b"]):
+            echo("inside.txt", v=p.get())
+        echo("outside.txt", v=p.get())
+    """)
+    bob.run("build")
+    assert bob.output_text("inside.txt").strip() == "a b"
+    assert bob.output_text("outside.txt").strip() == "a"
+
+
 def test_rule_provider_init_respects_explicit_single_input_kwarg(bob):
     """Passing `single_input=True` with a rule that has `single_input=False`
     should error (or honor the kwarg), not silently swap to False."""
     bob.write("""
-        r = rule("cat $in > $out", single_input=False)
+        r = Rule("cat $in > $out", single_input=False)
         p = RuleProvider(r, single_input=True)
     """)
     r = bob.run("configure", assert_succesful=False)

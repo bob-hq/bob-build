@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Set, Union
 
 from bob.core.targets import FileTarget, RootRelativePath
 from bob.core.variable import Variable
@@ -9,17 +9,17 @@ from bob.core.variable import Variable
 class Expression:
     """A list comprised of constant strings and variables."""
 
-    VARIABLE_REGEX = re.compile(r"[a-zA-Z0-9]+")
+    VARIABLE_REGEX = re.compile(r"[a-zA-Z0-9_]+")
 
     def __init__(self, parts: List[Union[str, Variable]]):
         self.parts = parts
 
     @property
-    def variables(self):
+    def variables(self) -> Set[str]:
         return {p.name for p in self.parts if isinstance(p, Variable)}
 
     @staticmethod
-    def parse(expression: Union[None, str, Path]):
+    def parse(expression: Union[None, str, Path]) -> "Expression":
         """Return an expression represented by the given string or path."""
 
         if expression is None:
@@ -43,34 +43,35 @@ class Expression:
 
             assert next + 1 < len(expression)
             if expression[next + 1] == "$":
-                if len(parts) == 0:
+                if len(parts) == 0 or isinstance(parts[-1], Variable):
                     parts.append("")
 
-                parts[-1] += expression[current:next] + "$"
+                parts[-1] += expression[current:next] + "$"  # ty:ignore[unsupported-operator]
                 current = next + 2
                 continue
 
-            match = Expression.VARIABLE_REGEX.search(expression, next + 1)
-            assert match is not None
+            if expression[next + 1] == "{":
+                name = expression[next + 2 : expression.index("}", next + 2)]
+                next_current = next + 2 + len(name) + 1
+            else:
+                match = Expression.VARIABLE_REGEX.search(expression, next + 1)
+                assert match is not None
+                name = match.group()
+                next_current = next + 1 + len(name)
 
             if current != next:
                 if len(parts) == 0 or isinstance(parts[-1], Variable):
                     parts.append("")
 
-                parts[-1] += expression[current:next]
+                parts[-1] += expression[current:next]  # ty:ignore[unsupported-operator]
 
-            name = match.group()
             parts.append(Variable(name=name))
-            current = next + 1 + len(name)
+            current = next_current
 
         return Expression(parts)
 
-    def expand(self, **values: str):
+    def expand(self, **values: str) -> str:
         """Encode the expression as a Ninja string, with the given variable values expanded."""
-
-        if len(self.parts) == 0:
-            return None
-
         output = ""
 
         for p in self.parts:
@@ -84,7 +85,11 @@ class Expression:
 
         return output
 
-    def validate(self, variables: Dict[str, Any], allow_unused=False):
+    def validate(
+        self,
+        variables: Dict[str, Any],
+        allow_unused: Union[None, bool, Set[str]] = None,
+    ) -> None:
         """
         Make sure all of the expression's variables are initialized and have a valid value, and if `allow_unused` is not set, there are no unused variables.
         """
@@ -106,7 +111,15 @@ class Expression:
                 for x in value
             ), f"Invalid variable {key} with value {value}"
 
-            if not allow_unused and key not in valid_variables:
+            if (
+                key not in valid_variables
+                and allow_unused is not True
+                and (
+                    allow_unused is False
+                    or allow_unused is None
+                    or key not in allow_unused
+                )
+            ):
                 raise KeyError(f"Unused variable {key}")
 
         for p in self.parts:

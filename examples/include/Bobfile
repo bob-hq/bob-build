@@ -11,8 +11,8 @@ def foo(name: str):
 
 include("targets")
 
-include("flat", chdir=False)
+# include("flat", change_source_dir=False)
 
-subbob("flat-subbob/Bobfile", chdir=False)
+# subbob("flat-subbob/Bobfile", change_build_dir=False)
 
 bar(targets)

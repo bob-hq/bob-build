@@ -9,7 +9,8 @@ def test_make_supports_explicit_makefile(bob):
         import bob.plugins.make as m
         m.make("sub/out", dir=Path("sub"), file=Path("MyMake"), flags=["BUILD=" + str(Path(*['..' for _ in curdir().value.parts], '..') / builddir().value / 'sub')])
     """)
-    bob.run("build")
+    # TODO: A Ninja-compatible jobserver requires GNU Make 4.4+ which we don't have yet in CI.
+    bob.run("build", "--no-jobserver")
 
     for f in bob.build.parent.rglob("*"):
         print(f)

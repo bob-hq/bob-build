@@ -1,12 +1,13 @@
 import os
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Generator
 
 import bob.external.job_server_pool as job_server_pool
 
 
 @contextmanager
-def jobserver(jobs: int, fifo_path: Path):
+def jobserver(jobs: int, fifo_path: Path) -> Generator[None, None, None]:
     if jobs <= 0:
         raise ValueError("Cannot run a jobserver with non-positive jobs!")
 
@@ -19,6 +20,7 @@ def jobserver(jobs: int, fifo_path: Path):
             os.environ["MAKEFLAGS"] = env["MAKEFLAGS"]
             yield
         finally:
+            os.environ.pop("MAKEFLAGS")
             job_server_pool.win32api.CloseHandle(handle)
     else:
         read_fd = None
@@ -28,6 +30,7 @@ def jobserver(jobs: int, fifo_path: Path):
             os.environ["MAKEFLAGS"] = env["MAKEFLAGS"]
             yield
         finally:
+            os.environ.pop("MAKEFLAGS")
             if read_fd is not None:
                 os.close(read_fd)
             if write_fd is not None:

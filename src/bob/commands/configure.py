@@ -8,7 +8,7 @@ from bob.constants import BOB_BUILD_SUBDIR
 from bob.core.context import BobContext
 
 
-def _configs(variables: Sequence[str]):
+def _configs(variables: Sequence[str]) -> Dict[str, str]:
     result: Dict[str, str] = {}
     for variable in variables:
         key, _, value = variable.partition("=")
@@ -23,7 +23,7 @@ def _configure(
     lazy=False,
     use_current_configs=False,
     allow_build_outside_builddir=False,
-):
+) -> None:
     start = time.time()
 
     bob_configs_path = Path(builddir) / BOB_BUILD_SUBDIR / "configs.json"
@@ -75,7 +75,7 @@ def configure(
     config: Sequence[str],
     use_current_configs: bool,
     allow_build_outside_builddir: bool,
-):
+) -> None:
     _configure(
         builddir,
         Path(f),

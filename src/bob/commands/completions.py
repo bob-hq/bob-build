@@ -8,12 +8,12 @@ from typing import Optional
 from rich.prompt import Confirm
 
 
-def completions(shell: Optional[str], y: bool):
+def completions(shell: Optional[str], y: bool) -> None:
     if shell is None:
         shell = Path(os.environ["SHELL"]).name
 
     bob = shutil.which("bob")
-    assert Path(bob).resolve() == Path(sys.argv[0]).resolve(), (
+    assert bob is not None and Path(bob).resolve() == Path(sys.argv[0]).resolve(), (
         "You must be running a `bob` that is in the PATH to install shell completions!"
     )
 

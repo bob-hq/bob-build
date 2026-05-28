@@ -9,6 +9,6 @@ with dummy.extend(["provided"]):
 
 demo("after")
 
-subbob("evil", demo=demo)
+subbob("evil", provides={"demo": demo})
 
 demo("afterevil")

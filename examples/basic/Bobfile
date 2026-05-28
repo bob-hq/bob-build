@@ -11,7 +11,7 @@ src = Path("src")
 c.toolchain(ccbin=["clang"], arbin=["llvm-ar"])
 
 baselib = subbob("src/baselib").use("baselib", type=c.Bundle)
-mylib = subbob("src/mylib", baselib=baselib).use("mylib", type=c.Bundle)
+mylib = subbob("src/mylib", provides={"baselib": baselib}).use("mylib", type=c.Bundle)
 
 
 if config("DEBUG") == "y":

@@ -8,14 +8,14 @@ from conftest import assert_output_contains_needles
 
 
 def test_default_variable_substitutes(bob):
-    bob.write('rule("echo $msg > $out", msg="hello world").build("out.txt")')
+    bob.write('Rule("echo $msg > $out", msg="hello world").build("out.txt")')
     bob.run("build")
     assert bob.output_text("out.txt").strip() == "hello world"
 
 
 def test_per_build_variable_overrides_default(bob):
     bob.write("""
-        emit = rule("echo $word > $out", word="default")
+        emit = Rule("echo $word > $out", word="default")
         emit("a.txt")
         emit("b.txt", word="override")
     """)
@@ -25,7 +25,7 @@ def test_per_build_variable_overrides_default(bob):
 
 
 def test_list_variable_escaped(bob):
-    bob.write('rule("echo $words > $out", words=["one", "two three"]).build("out.txt")')
+    bob.write('Rule("echo $words > $out", words=["one", "two three"]).build("out.txt")')
     bob.run("build")
     # second element contains a space → shlex-quoted on the build edge.
     assert bob.output_text("out.txt").strip() == "one two three"
@@ -33,7 +33,7 @@ def test_list_variable_escaped(bob):
 
 def test_variable_provide_scoped(bob):
     bob.write("""
-        emit = rule("echo $tag > $out", tag="ignored")
+        emit = Rule("echo $tag > $out", tag="ignored")
         with emit["tag"].provide("scoped"):
             emit("inside.txt")
         emit("outside.txt")
@@ -45,7 +45,7 @@ def test_variable_provide_scoped(bob):
 
 def test_variable_extend_scoped(bob):
     bob.write("""
-        emit = rule("echo $flags > $out", flags=["base"])
+        emit = Rule("echo $flags > $out", flags=["base"])
         with emit["flags"].extend(["extra"]):
             emit("ext.txt")
         emit("base.txt")
@@ -57,8 +57,8 @@ def test_variable_extend_scoped(bob):
 
 def test_variable(bob):
     bob.write("""
-        a = rule("echo $shared a > $out", shared="x")
-        b = rule("echo $shared b > $out", shared="x")
+        a = Rule("echo $shared a > $out", shared="x")
+        b = Rule("echo $shared b > $out", shared="x")
         shared = variable("shared", a, b)
         with shared.provide("Y"):
             a("a.txt")
@@ -71,7 +71,7 @@ def test_variable(bob):
 
 def test_rule_rebuilds_when_input_changes(bob):
     (bob.tmp_path / "src.txt").write_text("first", "utf-8")
-    bob.write('rule("cp $in $out").build("out.txt", inputs=["src.txt"])')
+    bob.write('Rule("cp $in $out").build("out.txt", inputs=["src.txt"])')
     bob.run("build")
     assert bob.output_text("out.txt") == "first"
 
@@ -83,7 +83,7 @@ def test_rule_rebuilds_when_input_changes(bob):
 
 def test_rule_skips_when_input_unchanged(bob):
     (bob.tmp_path / "src.txt").write_text("body", "utf-8")
-    bob.write('rule("cp $in $out").build("out.txt", inputs=["src.txt"])')
+    bob.write('Rule("cp $in $out").build("out.txt", inputs=["src.txt"])')
     bob.run("build")
     mtime = bob.output_path("out.txt").stat().st_mtime
 
@@ -94,7 +94,7 @@ def test_rule_skips_when_input_unchanged(bob):
 
 def test_multi_output_edge_writes_all_outputs(bob):
     """Both outputs of a multi-output edge must exist after one build."""
-    bob.write('rule("echo hi | tee $out > /dev/null").build("a.txt", "b.txt")')
+    bob.write('Rule("echo hi | tee $out > /dev/null").build("a.txt", "b.txt")')
     bob.run("build")
     assert bob.output_text("a.txt").strip() == "hi"
     assert bob.output_text("b.txt").strip() == "hi"
@@ -103,7 +103,7 @@ def test_multi_output_edge_writes_all_outputs(bob):
 def test_multi_output_edge_runs_once_per_build(bob):
     """A single multi-output edge produces both outputs in one invocation —
     not one edge per output. Both files share a single mtime."""
-    bob.write('rule("echo hi | tee $out > /dev/null").build("a.txt", "b.txt")')
+    bob.write('Rule("echo hi | tee $out > /dev/null").build("a.txt", "b.txt")')
     bob.run("build")
     # mtime resolution can collapse to whole seconds on some filesystems, so
     # we assert |delta| < 1s rather than equality.
@@ -121,7 +121,7 @@ def test_generate_rule_skips_downstream_when_output_unchanged(bob):
     (bob.tmp_path / "src.txt").write_text("constant", "utf-8")
     bob.write("""
         gen = generate_rule("cat src.txt").build("gen.txt")
-        rule("cp $in $out").build("downstream.txt", inputs=[gen])
+        Rule("cp $in $out").build("downstream.txt", inputs=[gen])
     """)
     bob.run("build")
     downstream_mtime = bob.output_path("downstream.txt").stat().st_mtime
@@ -157,7 +157,7 @@ def test_generate_rule_rebuilds_downstream_when_output_changes(bob):
     (bob.tmp_path / "src.txt").write_text("first", "utf-8")
     bob.write("""
         gen = generate_rule("cat src.txt").build("gen.txt")
-        rule("cp $in $out").build("downstream.txt", inputs=[gen])
+        Rule("cp $in $out").build("downstream.txt", inputs=[gen])
     """)
     bob.run("build")
     downstream_mtime = bob.output_path("downstream.txt").stat().st_mtime
@@ -171,7 +171,7 @@ def test_generate_rule_rebuilds_downstream_when_output_changes(bob):
 
 def test_rule_single_input_enforced(bob):
     bob.write("""
-        r = rule("cat $in > $out", single_input=True)
+        r = Rule("cat $in > $out", single_input=True)
         r("out.txt", inputs=["a", "b"])
     """)
     r = bob.run("build", assert_succesful=False)
@@ -180,7 +180,7 @@ def test_rule_single_input_enforced(bob):
 
 def test_rule_single_output_enforced(bob):
     bob.write("""
-        r = rule("echo hi > $out", single_output=True)
+        r = Rule("echo hi > $out", single_output=True)
         r("a.txt", "b.txt")
     """)
     r = bob.run("build", assert_succesful=False)
@@ -192,7 +192,7 @@ def test_rule_variable_accepts_path_value(bob):
     (bob.tmp_path / "src.txt").write_text("payload", "utf-8")
     bob.write("""
         from pathlib import Path
-        rule("cat $extra > $out", extra="").build(
+        Rule("cat $extra > $out", extra="").build(
             "out.txt", inputs=[], extra=Path("src.txt")
         )
     """)
@@ -203,8 +203,8 @@ def test_rule_variable_accepts_path_value(bob):
 def test_rule_implicit_accepts_filetarget(bob):
     """`implicit=[file_target]` adds the underlying path as an implicit dep."""
     bob.write("""
-        gen = rule("echo gen > $out").build("gen.txt")
-        echo = rule("echo hi > $out")
+        gen = Rule("echo gen > $out").build("gen.txt")
+        echo = Rule("echo hi > $out")
         echo("out.txt", implicit=[gen])
     """)
     bob.run("configure")
@@ -214,8 +214,8 @@ def test_rule_implicit_accepts_filetarget(bob):
 
 def test_rule_implicit_accepts_root_relative_path(bob):
     bob.write("""
-        rule("echo seed > $out").build("seed.txt")
-        echo = rule("echo hi > $out")
+        Rule("echo seed > $out").build("seed.txt")
+        echo = Rule("echo hi > $out")
         echo("out.txt", implicit=[RootRelativePath("seed.txt")])
     """)
     bob.run("configure")
@@ -224,21 +224,67 @@ def test_rule_implicit_accepts_root_relative_path(bob):
 
 
 def test_rule_uninitialized_variable(bob):
-    bob.write('rule("$missing > $out").build("a.txt")')
+    bob.write('Rule("$missing > $out").build("a.txt")')
     r = bob.run("build", assert_succesful=False)
     assert_output_contains_needles(r, "uninitialized")
 
 
 def test_rule_unused_variable_at_construction(bob):
-    bob.write('rule("echo $known > $out", surprise="x")')
+    bob.write('Rule("echo $known > $out", surprise="x")')
     r = bob.run("build", assert_succesful=False)
     assert_output_contains_needles(r, "not a variable of the rule")
 
 
 def test_rule_unused_variable_at_build(bob):
     bob.write("""
-        emit = rule("echo $known > $out", known="x")
+        emit = Rule("echo $known > $out", known="x")
         emit("a.txt", typo="y")
     """)
     r = bob.run("build", assert_succesful=False)
     assert_output_contains_needles(r, "unused variable")
+
+
+def test_rule_build_single_output_returns_filetarget(bob):
+    bob.write("""
+        r = Rule("echo hi > $out", single_output=True).build("a.txt")
+        assert isinstance(r, FileTarget), type(r)
+    """)
+    bob.run("configure")
+
+
+def test_rule_build_multi_output_returns_list_of_filetargets(bob):
+    bob.write("""
+        r = Rule("echo hi | tee $out > /dev/null").build("a.txt", "b.txt")
+        assert isinstance(r, list), type(r)
+        assert all(isinstance(x, FileTarget) for x in r), r
+    """)
+    bob.run("configure")
+
+
+def test_rule_path_with_spaces_in_input(bob):
+    (bob.tmp_path / "my src.txt").write_text("spaced", "utf-8")
+    bob.write('Rule("cp $in $out").build("out.txt", inputs=["my src.txt"])')
+    bob.run("build")
+    assert bob.output_text("out.txt") == "spaced"
+
+
+def test_rule_path_with_colon_in_input(bob):
+    (bob.tmp_path / "a:b.txt").write_text("colon", "utf-8")
+    bob.write('Rule("cp $in $out").build("out.txt", inputs=["a:b.txt"])')
+    bob.run("build")
+    assert bob.output_text("out.txt") == "colon"
+
+
+def test_rule_path_with_dollar_in_input(bob):
+    """A `$` in an input path must be escaped (`$$`) on the Ninja build edge
+    rather than treated as a variable reference."""
+    (bob.tmp_path / "a$b.txt").write_text("dollar", "utf-8")
+    bob.write('Rule("cp $in $out").build("out.txt", inputs=["a$b.txt"])')
+    bob.run("build")
+    assert bob.output_text("out.txt") == "dollar"
+
+
+def test_rule_unicode_in_command_and_output_name(bob):
+    bob.write('Rule("echo café > $out").build("café.txt")')
+    bob.run("build")
+    assert bob.output_text("café.txt").strip() == "café"

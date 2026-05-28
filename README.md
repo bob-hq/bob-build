@@ -34,10 +34,10 @@ Bob doesn't need much boilerplate to build stuff.
 ```python
 from bob.prelude import *
 
-rule("echo hi > $out").build("demo")
+Rule("echo hi > $out").build("demo")
 
 # This will always be run, and when its output changes, the appropriate build file will be changed as well (and all dependant targets will be rebuilt).
-generate_rule("git rev-parse HEAD").build("commit")
+GenerateRule("git rev-parse HEAD").build("commit")
 ```
 
 Bob is fast and doesn't reconfigure Ninja from your Bobfiles unless necessary.
@@ -45,7 +45,7 @@ Bob is fast and doesn't reconfigure Ninja from your Bobfiles unless necessary.
 Bob lets you be type-safe with your variables, escape them correctly, and make sure they aren't used uninitialized.
 
 ```python
-cc = rule("$ccbin -MMD -MT $out -MF $out.d $cflags -fdiagnostics-color=always -c $in -o $out")
+cc = Rule("$ccbin -MMD -MT $out -MF $out.d $cflags -fdiagnostics-color=always -c $in -o $out")
 # Set the value of the given rule variables. 
 cc["cflags"].provide(["-Wall", "-Wextra"])
 # Extend the array value of the given rule variables.
@@ -83,10 +83,10 @@ Bob has a plugin for C projects which provides simple abstractions over a toolch
 ```python
 import bob.plugins.c as c
 
-c.toolchain(ccbin=["clang"], arbin=["llvm-ar"])
+c.toolchain(ccbin=["gcc"], arbin=["ar"])
 
 mylib = c.static_library_bundle(
-    "mylib", sources=["mylib.c"], public_cflags=[f"-I{curdir()}"]
+    "mylib", sources=["mylib.c"], public_cflags=[f"-I{srcdir()}"]
 )
 
 c.binary("mybin", sources=["my_main.c"], bundles=[mylib])
@@ -95,7 +95,7 @@ c.binary("mybin", sources=["my_main.c"], bundles=[mylib])
 Bob lets you override your rules inside a scope.
 
 ```python
-my_cc = rule(
+my_cc = Rule(
     "$ccbin $cflags -c overridden.c -o $out; echo hi > $out.hi",
     description="CC",
     implicit_outputs=["$out.hi"],
@@ -111,7 +111,7 @@ Bob lets you split your build files in the way that works for you.
 # The Bobfile inside `src/baselib` must `export("baselib", ...)`.
 baselib = subbob("src/baselib").use("baselib", type=c.Bundle)
 # The Bobfile inside `src/mylib` can `use("baselib")`.
-mylib = subbob("src/mylib", baselib=baselib).use("mylib", type=c.Bundle)
+mylib = subbob("src/mylib", provides:{"baselib": baselib}).use("mylib", type=c.Bundle)
 
 # `include` uses the current scope.
 include("targets")

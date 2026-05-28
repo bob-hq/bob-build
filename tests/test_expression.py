@@ -77,3 +77,20 @@ def test_variable_instances_in_parts():
     expr = Expression.parse("a$b")
     assert isinstance(expr.parts[1], Variable)
     assert expr.parts[1].name == "b"
+
+
+def test_expression_parse_underscore_variable_name():
+    expr = Expression.parse("$foo_bar")
+    assert expr.variables == {"foo_bar"}
+
+
+def test_expression_parse_two_adjacent_variables_split_into_separate_parts():
+    expr = Expression.parse("$a$b")
+    assert [str(p) for p in expr.parts] == ["a", "b"]
+    assert expr.variables == {"a", "b"}
+
+
+def test_expression_parse_brace_variable_syntax():
+    expr = Expression.parse("${foo}")
+    assert expr.variables == {"foo"}
+    assert expr.expand() == "$foo"

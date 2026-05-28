@@ -7,7 +7,7 @@ from conftest import assert_output_contains_needles
 
 DUMMY_BOBFILE_OUTPUT_CONTENTS = "hi"
 DUMMY_BOBFILE_OUTPUT_FILE = "h.txt"
-DUMMY_BOBFILE = f'rule("printf {DUMMY_BOBFILE_OUTPUT_CONTENTS} > $out").build("{DUMMY_BOBFILE_OUTPUT_FILE}")'
+DUMMY_BOBFILE = f'Rule("printf {DUMMY_BOBFILE_OUTPUT_CONTENTS} > $out").build("{DUMMY_BOBFILE_OUTPUT_FILE}")'
 
 
 def test_build_creates_output(bob):
@@ -82,7 +82,7 @@ def test_clean_removes_builddir(bob):
 
 def test_partial_ninja_file_removed_on_error(bob):
     bob.write("""
-        rule("echo > $out").build("first.txt")
+        Rule("echo > $out").build("first.txt")
         raise RuntimeError("boom")
     """)
     bob.run("build", assert_succesful=False)
@@ -92,7 +92,7 @@ def test_partial_ninja_file_removed_on_error(bob):
 def test_compdb_includes_rule_with_compile_command(bob):
     (bob.tmp_path / "main.c").write_text("int main(void){return 0;}\n", "utf-8")
     bob.write("""
-        cc = rule(
+        cc = Rule(
             "true",
             compile_command="clang -c $in -o $out",
         )
@@ -105,7 +105,7 @@ def test_compdb_includes_rule_with_compile_command(bob):
 
 def test_compdb_skips_rule_without_compile_command(bob):
     bob.write("""
-        plain = rule("echo > $out")
+        plain = Rule("echo > $out")
         plain("x.txt")
     """)
     bob.run("compdb")
@@ -117,8 +117,8 @@ def test_build_specific_target(bob):
     """`bob build <target>` forwards the target to ninja; other rules in
     the same Bobfile must NOT run."""
     bob.write("""
-        rule("echo first > $out").build("first.txt")
-        rule("echo second > $out").build("second.txt")
+        Rule("echo first > $out").build("first.txt")
+        Rule("echo second > $out").build("second.txt")
     """)
     bob.run("build", "build/first.txt")
     assert bob.output_text("first.txt").strip() == "first"
@@ -157,7 +157,7 @@ def test_use_current_configs_replays_saved_configs(bob):
     re-applies the prior `-c MODE=on` without the caller resupplying it."""
     bob.write("""
         m = config("MODE", default="off")
-        rule(f"echo {m} > $out").build("mode.txt")
+        Rule(f"echo {m} > $out").build("mode.txt")
     """)
     bob.run("build", configs={"MODE": "on"})
     assert bob.output_text("mode.txt").strip() == "on"
@@ -172,7 +172,7 @@ def test_build_outside_builddir_requires_flag(bob):
     `--allow-build-outside-builddir` is set."""
     bob.write("""
         from pathlib import Path
-        rule("echo hi > $out").build(Path("..") / "stray.txt")
+        Rule("echo hi > $out").build(Path("..") / "stray.txt")
     """)
     bob.run("build", assert_succesful=False)
 
@@ -180,8 +180,54 @@ def test_build_outside_builddir_requires_flag(bob):
 def test_build_outside_builddir_allowed_with_flag(bob):
     bob.write("""
         from pathlib import Path
-        rule("echo hi > $out").build(Path("..") / "stray.txt")
+        Rule("echo hi > $out").build(Path("..") / "stray.txt")
     """)
     bob.run("build", "--allow-build-outside-builddir")
     # The file lands one level above the builddir (i.e. at tmp_path).
     assert (bob.tmp_path / "stray.txt").read_text("utf-8").strip() == "hi"
+
+
+def test_clean_warns_and_skips_when_no_bob_subdir(bob):
+    """`clean` refuses to delete a directory that lacks a `.bob` subdir."""
+    target = bob.tmp_path / "notbob"
+    target.mkdir()
+    (target / "keep.txt").write_text("precious", "utf-8")
+    r = bob.run("clean", "--builddir", "notbob")
+    assert target.exists()
+    assert (target / "keep.txt").read_text("utf-8") == "precious"
+    assert_output_contains_needles(r, "not deleting")
+
+
+def test_clean_force_removes_non_bob_directory(bob):
+    """`clean --force` deletes a directory even without a `.bob` subdir."""
+    target = bob.tmp_path / "notbob"
+    target.mkdir()
+    (target / "keep.txt").write_text("precious", "utf-8")
+    bob.run("clean", "--builddir", "notbob", "--force")
+    assert not target.exists()
+
+
+def test_completions_y_flag_is_boolean(bob):
+    """`-y` is a flag (takes no value); an unsupported shell still reaches the
+    NotImplementedError branch without touching any RC files."""
+    r = bob.run("completions", "--shell", "totallybogus", "-y", assert_succesful=False)
+    assert_output_contains_needles(r, "not yet implemented")
+
+
+def test_bob_clean_with_dangling_compdb_symlink(bob):
+    """`clean` removes the root compile_commands.json symlink that points
+    into the build dir, then removes the build dir itself."""
+    bob.write(DUMMY_BOBFILE)
+    bob.run("build", "--symlink-compdb")
+    assert (bob.tmp_path / "compile_commands.json").exists()
+    bob.run("clean")
+    assert not bob.build.exists()
+    assert not (bob.tmp_path / "compile_commands.json").exists()
+
+
+def test_compdb_failure_does_not_leave_empty_file(bob):
+    """A configure failure during `compdb` aborts before writing
+    compile_commands.json, leaving none behind."""
+    bob.write('raise RuntimeError("boom")')
+    bob.run("compdb", assert_succesful=False)
+    assert not (bob.build / "compile_commands.json").exists()

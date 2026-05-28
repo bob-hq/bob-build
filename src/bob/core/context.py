@@ -11,6 +11,7 @@ from typing import (
     List,
     Optional,
     Set,
+    Tuple,
     Type,
     TypeVar,
     Union,
@@ -19,7 +20,7 @@ from typing import (
 
 from ninja.ninja_syntax import Writer
 
-from bob.constants import BOB_BUILD_SUBDIR, BOB_TARGET_PREFIX
+from bob.constants import BOB_BUILD_SUBDIR
 from bob.core.targets import RootRelativePath
 
 if TYPE_CHECKING:
@@ -28,9 +29,9 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-class _Exports:
+class Exports:
     def __init__(self, exports: Dict[str, Any]):
-        self.exports = exports
+        self._exports = exports
 
     @overload
     def use(
@@ -55,16 +56,16 @@ class _Exports:
     ) -> Union[T, Any]:
         """
         Get a specific export by its name.
-        @param name: The name of the exported value.
-        @param type: An optional class to verify the export is an instance of.
-        @param optional: Succeed even if the export doesn't exist.
-        @param default: Return this value if the export doesn't exist and `optional` is set.
+        :param name: The name of the exported value.
+        :param type: An optional class to verify the export is an instance of.
+        :param optional: Succeed even if the export doesn't exist.
+        :param default: Return this value if the export doesn't exist and `optional` is set.
         """
 
-        if optional and name not in self.exports:
+        if optional and name not in self._exports:
             return default
 
-        result = self.exports[name]
+        result = self._exports[name]
 
         if type is not None and not isinstance(result, type):
             raise TypeError()
@@ -80,24 +81,25 @@ class BobContext:
         builddir: Path,
         bobfile_path: Path,
         configs: Dict[str, str],
-        build_ninja_path: Path = None,
-        compdb_ninja_path: Path = None,
-        bob_configs_path: Path = None,
+        build_ninja_path: Path,
+        compdb_ninja_path: Path,
+        bob_configs_path: Path,
         allow_build_outside_builddir=False,
-    ):
+    ) -> None:
         from bob.core.rule import PhonyTarget, Rule
 
-        self.root = bobfile_path.parent.resolve()
+        root = bobfile_path.parent
+        self.root = root.resolve()
         self.builddir = RootRelativePath(builddir)
-        self.build_ninja_path = RootRelativePath(build_ninja_path)
-        self.compdb_ninja_path = RootRelativePath(compdb_ninja_path)
-        self.bob_configs_path = RootRelativePath(bob_configs_path)
+        self.build_ninja_path = RootRelativePath(build_ninja_path.relative_to(root))
+        self.compdb_ninja_path = RootRelativePath(compdb_ninja_path.relative_to(root))
+        self.bob_configs_path = RootRelativePath(bob_configs_path.relative_to(root))
         self.bobfile_path = bobfile_path
         self.configs = configs
         self.allow_build_outside_builddir = allow_build_outside_builddir
 
         self.writer: Optional[Writer] = None
-        self.configure_implicit_dependencies: Optional[Set[Path]] = None
+        self.configure_implicit_dependencies: Optional[Set[RootRelativePath]] = None
 
         self.current_source_dir = RootRelativePath(".")
         self.current_build_dir = RootRelativePath(self.builddir)
@@ -106,26 +108,37 @@ class BobContext:
         self.rules: List[Rule] = []
         self.providers: List["Provider"] = []
         self.always: Optional[PhonyTarget] = None
-        self._backups: List[Any] = []
+        self._backups: List[
+            Tuple[
+                RootRelativePath,
+                RootRelativePath,
+                Dict[str, str],
+                Set[str],
+                Dict[str, Any],
+                Dict[str, Any],
+                List[Rule],
+                List[Provider],
+            ]
+        ] = []
 
         self.unused_configs = set(configs.keys())
 
         self.rule_index = 1
         self.shell_index = 1
 
-    def __enter__(self):
+    def __enter__(self) -> "BobContext":
         from bob.core.rule import phony
 
-        self.build_ninja_path.value.parent.mkdir(parents=True, exist_ok=True)
-        self.compdb_ninja_path.value.parent.mkdir(parents=True, exist_ok=True)
+        self.build_ninja_path.resolve().parent.mkdir(parents=True, exist_ok=True)
+        self.compdb_ninja_path.resolve().parent.mkdir(parents=True, exist_ok=True)
 
-        self.writer = Writer(open(self.build_ninja_path.value, "w"))
-        self.compdb_writer = Writer(open(self.compdb_ninja_path.value, "w"))
+        self.writer = Writer(open(self.build_ninja_path.resolve(), "w"))  # ty:ignore[invalid-argument-type]
+        self.compdb_writer = Writer(open(self.compdb_ninja_path.resolve(), "w"))  # ty:ignore[invalid-argument-type]
         self.configure_implicit_dependencies = set()
-        self.configure_implicit_dependencies.add(self.bob_configs_path.value)
+        self.configure_implicit_dependencies.add(self.bob_configs_path)
 
         self.writer.comment("This file was automatically generated by Bob.")
-        self.writer.variable("builddir", self.builddir / BOB_BUILD_SUBDIR)
+        self.writer.variable("builddir", str(self.builddir / BOB_BUILD_SUBDIR))
         self.writer.newline()
 
         self.compdb_writer.comment(
@@ -133,14 +146,20 @@ class BobContext:
         )
         self.compdb_writer.newline()
 
-        self.always = phony(BOB_TARGET_PREFIX + "always", inputs=[])
+        self.always = phony(str(self.builddir / BOB_BUILD_SUBDIR / "always"), inputs=[])
 
         return self
 
-    def __exit__(self, exc_type, exc, tb):
+    def __exit__(self, exc_type, exc, tb) -> None:
         from bob.core.rule import Rule
 
-        build_ninja_name = self.build_ninja_path.value.relative_to(self.builddir.value)
+        build_ninja_name = self.build_ninja_path.resolve().relative_to(
+            self.builddir.resolve()
+        )
+
+        assert self.configure_implicit_dependencies is not None
+        assert self.writer is not None
+        assert self.compdb_writer is not None
 
         Rule(
             "FORCE_COLOR=1 $bobbin configure --use-current-configs -f $bobfile",
@@ -175,7 +194,7 @@ class BobContext:
         compdb_ninja_path: Path,
         bob_configs_path: Path,
         allow_build_outside_builddir: bool,
-    ):
+    ) -> "BobContext":
         assert BobContext._instance is None
 
         context = BobContext(
@@ -193,16 +212,18 @@ class BobContext:
         return context
 
     @staticmethod
-    def get():
+    def get() -> "BobContext":
         assert BobContext._instance is not None
 
         return BobContext._instance
 
-    def configure(self, bobfile_path: Union[None, Path, str] = None):
+    def configure(self, bobfile_path: Union[None, Path, str] = None) -> None:
+        assert self.configure_implicit_dependencies is not None
+
         if bobfile_path is None:
             bobfile_path = self.bobfile_path
 
-        bobfile = (self.current_source_dir / bobfile_path).value
+        bobfile = RootRelativePath(bobfile_path)
 
         if not bobfile.is_file():
             raise FileNotFoundError(
@@ -213,6 +234,7 @@ class BobContext:
             "configure",
             importlib.machinery.SourceFileLoader("configure", str(bobfile)),
         )
+        assert spec is not None and spec.loader is not None
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 
@@ -252,5 +274,5 @@ class BobContext:
         for provider in self.providers:
             provider._restore()
 
-    def get_exports(self):
-        return _Exports(self.exports)
+    def get_exports(self) -> Exports:
+        return Exports(self.exports)

@@ -15,7 +15,7 @@ def test_config_when_unset_none(bob):
 def test_config_when_unset_default(bob):
     bob.write("""
         mode = config("MODE", default="off")
-        rule(f"echo {mode} > $out").build("mode.txt")
+        Rule(f"echo {mode} > $out").build("mode.txt")
     """)
     bob.run("build")
     assert bob.output_text("mode.txt").strip() == "off"
@@ -30,7 +30,7 @@ def test_config_when_unset_required_fails(bob):
 def test_config_when_set(bob):
     bob.write("""
         mode = config("MODE")
-        rule(f"echo {mode} > $out").build("mode.txt")
+        Rule(f"echo {mode} > $out").build("mode.txt")
     """)
     bob.run("build", configs={"MODE": "on"})
     assert bob.output_text("mode.txt").strip() == "on"
@@ -44,7 +44,7 @@ def test_glob_enumerates_files(bob):
     (bob.tmp_path / "src" / "sub" / "b.txt").write_text("subb", "utf-8")
     (bob.tmp_path / "src" / "sub" / "unmatched").write_text("u", "utf-8")
     bob.write("""
-        cp = rule("cp $in $out")
+        cp = Rule("cp $in $out")
         for src in glob("**/*.txt", path="src"):
             cp(src, inputs=[src])
     """)
@@ -59,7 +59,7 @@ def test_glob_reconfigures_when_directory_changes(bob):
     (bob.tmp_path / "src").mkdir()
     (bob.tmp_path / "src" / "a.txt").write_text("a", "utf-8")
     bob.write("""
-        cp = rule("cp $in $out")
+        cp = Rule("cp $in $out")
         for src in glob("*.txt", path="src"):
             cp(src.name, inputs=[src])
     """)
@@ -76,7 +76,7 @@ def test_read_returns_bytes(bob):
     (bob.tmp_path / "data.txt").write_text("payload", "utf-8")
     bob.write("""
         body = read("data.txt").decode()
-        rule("echo $body > $out", body=body).build("out.txt")
+        Rule("echo $body > $out", body=body).build("out.txt")
     """)
     bob.run("build")
     assert bob.output_text("out.txt").strip() == "payload"
@@ -86,7 +86,7 @@ def test_read_reconfigures_when_file_changes(bob):
     (bob.tmp_path / "data.txt").write_text("first", "utf-8")
     bob.write("""
         body = read("data.txt").decode()
-        rule(f"echo {body} > $out").build("out.txt")
+        Rule(f"echo {body} > $out").build("out.txt")
     """)
     bob.run("build")
     assert bob.output_text("out.txt").strip() == "first"
@@ -108,7 +108,7 @@ def test_include_shares_caller_scope(bob):
     bob.write("""
         targets = []
         include("parts")
-        emit = rule("echo $name > $out")
+        emit = Rule("echo $name > $out")
         for t in targets:
             emit(t + ".txt", name=t)
     """)
@@ -130,7 +130,7 @@ def test_include_change_source_dir_resolves_relative_to_subdir(bob):
     (bob.tmp_path / "sub" / "src").mkdir(parents=True)
     (bob.tmp_path / "sub" / "src" / "data.txt").write_text("hello", "utf-8")
     bob.write(
-        'rule("cp $in $out").build("out.txt", inputs=["src/data.txt"])\n',
+        'Rule("cp $in $out").build("out.txt", inputs=["src/data.txt"])\n',
         name="sub/Bobfile",
     )
     bob.write('include("sub")')
@@ -141,7 +141,7 @@ def test_include_change_source_dir_resolves_relative_to_subdir(bob):
 def test_include_change_build_dir_outputs_under_subdir(bob):
     """`change_build_dir=True` (also via change_source_dir=True default
     cascade) places outputs at build/<sub>/<name>."""
-    bob.write('rule("echo hi > $out").build("inner.txt")\n', name="parts/Bobfile")
+    bob.write('Rule("echo hi > $out").build("inner.txt")\n', name="parts/Bobfile")
     bob.write('include("parts", change_build_dir=True)')
     bob.run("build")
     assert bob.output_text(Path("parts") / "inner.txt").strip() == "hi"
@@ -149,7 +149,7 @@ def test_include_change_build_dir_outputs_under_subdir(bob):
 
 def test_include_does_not_change_build_dir_by_default(bob):
     """Default `change_build_dir=False`: included outputs land flat."""
-    bob.write('rule("echo hi > $out").build("flat.txt")\n', name="parts/Bobfile")
+    bob.write('Rule("echo hi > $out").build("flat.txt")\n', name="parts/Bobfile")
     bob.write('include("parts")')
     bob.run("build")
     assert bob.output_text("flat.txt").strip() == "hi"
@@ -158,10 +158,10 @@ def test_include_does_not_change_build_dir_by_default(bob):
 
 def test_include_restores_parent_source_and_build_dirs(bob):
     """After an `include`, parent's source/build dirs are unchanged."""
-    bob.write('rule("echo from-sub > $out").build("sub.txt")\n', name="parts/Bobfile")
+    bob.write('Rule("echo from-sub > $out").build("sub.txt")\n', name="parts/Bobfile")
     bob.write("""
         include("parts", change_build_dir=True)
-        rule("echo parent > $out").build("parent.txt")
+        Rule("echo parent > $out").build("parent.txt")
     """)
     bob.run("build")
     assert bob.output_text(Path("parts") / "sub.txt").strip() == "from-sub"
@@ -176,7 +176,7 @@ def test_glob_in_included_subdir_anchors_at_subdir(bob):
     (bob.tmp_path / "lib" / "b.txt").write_text("b", "utf-8")
     bob.write(
         """
-        cp = rule("cp $in $out")
+        cp = Rule("cp $in $out")
         for f in glob("*.txt"):
             cp(f.name, inputs=[f])
     """,
@@ -193,11 +193,11 @@ def test_subbob_passes_parameter_in(bob):
     bob.write(
         """
         prefix = use("prefix", type=str)
-        rule("echo $p > $out", p=prefix).build("greet.txt")
+        Rule("echo $p > $out", p=prefix).build("greet.txt")
     """,
         name="lib/Bobfile",
     )
-    bob.write('subbob("lib", prefix="hi")')
+    bob.write('subbob("lib", provides={"prefix": "hi"})')
     bob.run("build")
     assert bob.output_text(Path("lib") / "greet.txt").strip() == "hi"
 
@@ -207,7 +207,7 @@ def test_subbob_export_returned_to_outer(bob):
     bob.write('export(produced="hello")\n', name="lib/Bobfile")
     bob.write("""
         got = subbob("lib").use("produced", type=str)
-        rule("echo $v > $out", v=got).build("relay.txt")
+        Rule("echo $v > $out", v=got).build("relay.txt")
     """)
     bob.run("build")
     assert bob.output_text("relay.txt").strip() == "hello"
@@ -217,7 +217,7 @@ def test_subbob_use_optional_returns_default(bob):
     bob.write("# empty\n", name="lib/Bobfile")
     bob.write("""
         result = subbob("lib").use("missing", type=str, optional=True, default="fb")
-        rule("echo $r > $out", r=result).build("out.txt")
+        Rule("echo $r > $out", r=result).build("out.txt")
     """)
     bob.run("build")
     assert bob.output_text("out.txt").strip() == "fb"
@@ -234,8 +234,8 @@ def test_subbob_restores_parent_rule_values(bob):
         name="lib/Bobfile",
     )
     bob.write("""
-        emit = rule("echo $msg > $out", msg="parent")
-        subbob("lib", emit=emit)
+        emit = Rule("echo $msg > $out", msg="parent")
+        subbob("lib", provides={"emit": emit})
         emit("after.txt")
     """)
     bob.run("build")
@@ -260,23 +260,23 @@ def test_subbob_use_missing_key_fails(bob):
 def test_subbob_rebuild_when_child_bobfile_changes(bob):
     """Editing a child Bobfile must trigger reconfigure on next parent build —
     child path lives in `configure_implicit_dependencies`."""
-    bob.write('rule("echo first > $out").build("sub.txt")', name="lib/Bobfile")
+    bob.write('Rule("echo first > $out").build("sub.txt")', name="lib/Bobfile")
     bob.write('subbob("lib")')
     bob.run("build")
     assert bob.output_text(Path("lib") / "sub.txt").strip() == "first"
 
     time.sleep(0.1)
-    bob.write('rule("echo second > $out").build("sub.txt")', name="lib/Bobfile")
+    bob.write('Rule("echo second > $out").build("sub.txt")', name="lib/Bobfile")
     bob.run("build")
     assert bob.output_text(Path("lib") / "sub.txt").strip() == "second"
 
 
 def test_subbob_restores_parent_build_dir(bob):
     """Parent rule built AFTER a subbob lands at builddir root, not subdir."""
-    bob.write('rule("echo child > $out").build("c.txt")\n', name="lib/Bobfile")
+    bob.write('Rule("echo child > $out").build("c.txt")\n', name="lib/Bobfile")
     bob.write("""
         subbob("lib")
-        rule("echo parent > $out").build("p.txt")
+        Rule("echo parent > $out").build("p.txt")
     """)
     bob.run("build")
     assert bob.output_text(Path("lib") / "c.txt").strip() == "child"
@@ -289,9 +289,9 @@ def test_subbob_restores_provides_after_return(bob):
     unaffected."""
     bob.write('use("k", type=str)\n', name="lib/Bobfile")
     bob.write("""
-        subbob("lib", k="child-value")
+        subbob("lib", provides={"k": "child-value"})
         assert use("k", type=str, optional=True, default="absent") == "absent"
-        rule("echo ok > $out").build("ok.txt")
+        Rule("echo ok > $out").build("ok.txt")
     """)
     bob.run("build")
     assert bob.output_text("ok.txt").strip() == "ok"
@@ -300,8 +300,8 @@ def test_subbob_restores_provides_after_return(bob):
 def test_subbob_no_output_collision_between_siblings(bob):
     """Two sibling subbobs may declare the same output name; each lands
     under its own curdir."""
-    bob.write('rule("echo a > $out").build("out.txt")', name="a/Bobfile")
-    bob.write('rule("echo b > $out").build("out.txt")', name="b/Bobfile")
+    bob.write('Rule("echo a > $out").build("out.txt")', name="a/Bobfile")
+    bob.write('Rule("echo b > $out").build("out.txt")', name="b/Bobfile")
     bob.write("""
         subbob("a")
         subbob("b")
@@ -314,7 +314,7 @@ def test_subbob_no_output_collision_between_siblings(bob):
 def test_shell_runs_command_at_configure(bob):
     bob.write("""
         magic = shell("echo abracadabra").strip()
-        rule("echo $word > $out", word=magic).build("out.txt")
+        Rule("echo $word > $out", word=magic).build("out.txt")
     """)
     bob.run("build")
     assert bob.output_text("out.txt").strip() == "abracadabra"
@@ -330,7 +330,7 @@ def test_shell_failure_aborts_configure(bob):
 
 def test_shell_inside_subbob_writes_to_per_subbob_build_dir(bob):
     bob.write(
-        'magic = shell("echo deep").strip()\nrule(f"echo {magic} > $out").build("out.txt")\n',
+        'magic = shell("echo deep").strip()\nRule(f"echo {magic} > $out").build("out.txt")\n',
         name="lib/Bobfile",
     )
     bob.write('subbob("lib")')
@@ -340,7 +340,7 @@ def test_shell_inside_subbob_writes_to_per_subbob_build_dir(bob):
 
 def test_nested_subbob_resolves_correctly(bob):
     bob.write(
-        'rule("echo deep > $out").build("inner.txt")\n',
+        'Rule("echo deep > $out").build("inner.txt")\n',
         name="a/b/Bobfile",
     )
     bob.write('subbob("b")\n', name="a/Bobfile")
@@ -353,7 +353,7 @@ def test_shell_reconfigures_when_output_changes(bob):
     (bob.tmp_path / "magic").write_text("first\n", "utf-8")
     bob.write("""
         magic = shell("cat magic").strip()
-        rule(f"echo {magic} > $out").build("out.txt")
+        Rule(f"echo {magic} > $out").build("out.txt")
     """)
     bob.run("build")
     assert bob.output_text("out.txt").strip() == "first"
@@ -362,3 +362,195 @@ def test_shell_reconfigures_when_output_changes(bob):
     (bob.tmp_path / "magic").write_text("second\n", "utf-8")
     bob.run("build")
     assert bob.output_text("out.txt").strip() == "second"
+
+
+def test_read_text_true_returns_str(bob):
+    (bob.tmp_path / "data.txt").write_text("payload", "utf-8")
+    bob.write("""
+        body = read("data.txt", text=True)
+        assert isinstance(body, str), type(body)
+        Rule("echo $b > $out", b=body).build("out.txt")
+    """)
+    bob.run("build")
+    assert bob.output_text("out.txt").strip() == "payload"
+
+
+def test_shell_text_false_returns_bytes(bob):
+    bob.write("""
+        out = shell("printf raw", text=False)
+        assert isinstance(out, bytes), type(out)
+        Rule("echo $w > $out", w=out.decode()).build("out.txt")
+    """)
+    bob.run("build")
+    assert bob.output_text("out.txt").strip() == "raw"
+
+
+def test_glob_unicode_filenames(bob):
+    (bob.tmp_path / "src").mkdir()
+    (bob.tmp_path / "src" / "café.txt").write_text("u", "utf-8")
+    bob.write("""
+        cp = Rule("cp $in $out")
+        for src in glob("*.txt", path="src"):
+            cp(src.name, inputs=[src])
+    """)
+    bob.run("build")
+    assert bob.output_text("café.txt") == "u"
+
+
+def test_bob_required_version_two_segment_string(bob):
+    # A "major.minor" string (no patch) must parse and satisfy the running
+    # bob version.
+    bob.write("""
+        bob_required_version("1.0")
+        Rule("echo ok > $out").build("ok.txt")
+    """)
+    bob.run("build")
+    assert bob.output_text("ok.txt").strip() == "ok"
+
+
+def test_include_function_defined_in_child_callable_from_parent(bob):
+    bob.write(
+        """
+        def make(name):
+            Rule("echo $n > $out", n=name).build(name + ".txt")
+        """,
+        name="parts/Bobfile",
+    )
+    bob.write("""
+        include("parts")
+        make("from-helper")
+    """)
+    bob.run("build")
+    assert bob.output_text("from-helper.txt").strip() == "from-helper"
+
+
+def test_include_nested_resolves_against_current_source_dir(bob):
+    """An `include` inside an included file should resolve its child path
+    against the deepest current source dir."""
+    (bob.tmp_path / "a" / "b").mkdir(parents=True)
+    (bob.tmp_path / "a" / "b" / "data.txt").write_text("deep", "utf-8")
+    bob.write(
+        'Rule("cp $in $out").build("out.txt", inputs=["data.txt"])\n',
+        name="a/b/Bobfile",
+    )
+    bob.write('include("b")\n', name="a/Bobfile")
+    bob.write('include("a")')
+    bob.run("build")
+    assert bob.output_text("out.txt") == "deep"
+
+
+def test_include_failure_restores_parent_source_and_build_dirs(bob):
+    """If an included Bobfile raises, the parent's source/build dirs are
+    restored (the `finally` in `include`)."""
+    bob.write('raise RuntimeError("boom")\n', name="parts/Bobfile")
+    bob.write("""
+        before_source = curdir().value
+        before_build = builddir().value
+        try:
+            include("parts", change_build_dir=True)
+        except RuntimeError:
+            pass
+        assert curdir().value == before_source
+        assert builddir().value == before_build
+        Rule("echo ok > $out").build("ok.txt")
+    """)
+    bob.run("build")
+    assert bob.output_text("ok.txt").strip() == "ok"
+
+
+def test_subbob_returns_exports_instance(bob):
+    bob.write("# empty\n", name="lib/Bobfile")
+    bob.write("""
+        from bob.core.context import Exports
+        result = subbob("lib")
+        assert isinstance(result, Exports), type(result)
+        Rule("echo ok > $out").build("ok.txt")
+    """)
+    bob.run("build")
+    assert bob.output_text("ok.txt").strip() == "ok"
+
+
+def test_subbob_failure_restores_parent_state(bob):
+    """A raising child must not leave the parent's source dir recursed: the
+    `finally` in `subbob` restores the backed-up context."""
+    bob.write('raise RuntimeError("boom")\n', name="lib/Bobfile")
+    bob.write("""
+        before = curdir().value
+        try:
+            subbob("lib")
+        except RuntimeError:
+            pass
+        assert curdir().value == before
+        Rule("echo ok > $out").build("ok.txt")
+    """)
+    bob.run("build")
+    assert bob.output_text("ok.txt").strip() == "ok"
+
+
+def test_source_recurse_scopes_current_source_dir_within_with_block(bob):
+    bob.write("""
+        from pathlib import Path
+        with source_recurse("sub"):
+            assert curdir().value == Path("sub"), curdir().value
+        Rule("echo ok > $out").build("ok.txt")
+    """)
+    bob.run("build")
+    assert bob.output_text("ok.txt").strip() == "ok"
+
+
+def test_source_recurse_restores_after_exit(bob):
+    bob.write("""
+        before = curdir().value
+        with source_recurse("sub"):
+            pass
+        assert curdir().value == before
+        Rule("echo ok > $out").build("ok.txt")
+    """)
+    bob.run("build")
+    assert bob.output_text("ok.txt").strip() == "ok"
+
+
+def test_build_recurse_scopes_current_build_dir(bob):
+    bob.write("""
+        before = builddir().value
+        with build_recurse("sub"):
+            assert builddir().value == before / "sub", builddir().value
+        assert builddir().value == before
+        Rule("echo ok > $out").build("ok.txt")
+    """)
+    bob.run("build")
+    assert bob.output_text("ok.txt").strip() == "ok"
+
+
+def test_source_recurse_nested_compose_paths(bob):
+    bob.write("""
+        from pathlib import Path
+        with source_recurse("a"):
+            with source_recurse("b"):
+                assert curdir().value == Path("a/b"), curdir().value
+        Rule("echo ok > $out").build("ok.txt")
+    """)
+    bob.run("build")
+    assert bob.output_text("ok.txt").strip() == "ok"
+
+
+def test_root_relative_path_default_anchors_to_current_source_dir(bob):
+    bob.write("""
+        from pathlib import Path
+        with source_recurse("sub"):
+            assert RootRelativePath("x").value == Path("sub/x")
+        Rule("echo ok > $out").build("ok.txt")
+    """)
+    bob.run("build")
+    assert bob.output_text("ok.txt").strip() == "ok"
+
+
+def test_root_relative_path_resolve_returns_absolute_under_context_root(bob):
+    bob.write("""
+        r = RootRelativePath("foo.txt").resolve()
+        assert r.is_absolute(), r
+        assert str(r).endswith("foo.txt"), r
+        Rule("echo ok > $out").build("ok.txt")
+    """)
+    bob.run("build")
+    assert bob.output_text("ok.txt").strip() == "ok"

@@ -1,12 +1,11 @@
-import shutil
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, List, Optional, Union
+from typing import Callable, Generator, List, Optional, Tuple, Union
 
 from bob.prelude import *
 
-cc = rule(
+cc = Rule(
     "$ccbin -MMD -MT $out -MF $out.d $cflags -c $in -o $out",
     description="CC",
     depfile="$out.d",
@@ -14,7 +13,7 @@ cc = rule(
     compile_command="$ccbin -MMD -MT $out -MF $out.d $cflags -c $in -o $out",
 )
 cc_provider = RuleProvider(cc)
-asm = rule(
+asm = Rule(
     "$asbin -MMD -MT $out -MF $out.d $asflags -c $in -o $out",
     description="AS",
     depfile="$out.d",
@@ -22,25 +21,25 @@ asm = rule(
     compile_command="$asbin -MMD -MT $out -MF $out.d $asflags -c $in -o $out",
 )
 asm_provider = RuleProvider(asm)
-ld = rule(
+ld = Rule(
     "$ldbin $cflags $ldflags -o $out $in $ldlibs",
     description="LD",
 )
 ld_provider = RuleProvider(ld)
-ar = rule(
+ar = Rule(
     "rm -f $out && $arbin crs $out $in",
     description="AR",
 )
 ar_provider = RuleProvider(ar)
 
-ccbinvar = cc["ccbin"]
-asbinvar = asm["asbin"]
-ldbinvar = ld["ldbin"]
-arbinvar = ar["arbin"]
+ccbin = cc_provider["ccbin"]
+asbin = asm_provider["asbin"]
+ldbin = ld_provider["ldbin"]
+arbin = ar_provider["arbin"]
 
-cflags = variable("cflags", cc, ld)
-asflags = asm["asflags"]
-ldflags = ld["ldflags"]
+cflags = variable("cflags", cc_provider, ld_provider)
+asflags = asm_provider["asflags"]
+ldflags = ld_provider["ldflags"]
 
 cflags.provide(["-fdiagnostics-color=always"])
 asflags.provide([])
@@ -51,29 +50,29 @@ ldflags.provide([])
 class Bundle:
     """A bundle that can be used to create dependent binaries and libraries."""
 
-    objects: List[Union[str, Path, RootRelativePath, FileTarget]] = field(
-        default_factory=list
-    )
-    ldlibs: List[Union[str, Path, RootRelativePath, FileTarget]] = field(
-        default_factory=list
-    )
-    order_only: Optional[RuleInput] = None
+    objects: BuildInput.Type = field(default_factory=list)
+    ldlibs: BuildInput.Type = field(default_factory=list)
+    order_only: Optional[BuildInput.Type] = None
     cflags: List[str] = field(default_factory=list)
     asflags: List[str] = field(default_factory=list)
     ldflags: List[str] = field(default_factory=list)
 
     def __add__(self, other: "Bundle"):
         return Bundle(
-            objects=self.objects + other.objects,
-            order_only=rule_input_add(self.order_only, other.order_only),
-            ldlibs=self.ldlibs + other.ldlibs,
+            objects=BuildInput.add(self.objects, other.objects),
+            order_only=BuildInput.add(self.order_only, other.order_only),
+            ldlibs=BuildInput.add(self.ldlibs, other.ldlibs),
             cflags=self.cflags + other.cflags,
             asflags=self.asflags + other.asflags,
             ldflags=self.ldflags + other.ldflags,
         )
 
     @contextmanager
-    def scope(self):
+    def _scope(
+        self,
+    ) -> Generator[
+        Tuple[BuildInput.Type, BuildInput.Type, Optional[BuildInput.Type]], None, None
+    ]:
         with (
             cflags.extend(self.cflags),
             asflags.extend(self.asflags),
@@ -85,49 +84,49 @@ class Bundle:
 default_bundles = Provider[List[Bundle]]([])
 """The default bundles to use for C targets."""
 
-objects = []
+objects: List[FileTarget] = []
 """All built C objects."""
 
 
 def object(
-    source: SingleRuleInput,
+    source: BuildInput.Single,
     bundles: Optional[List[Bundle]] = None,
-    implicit: Optional[RuleInput] = None,
-    order_only: Optional[RuleInput] = None,
-    implicit_outputs: Optional[RuleInput] = None,
+    implicit: Optional[BuildInput.Type] = None,
+    order_only: Optional[BuildInput.Type] = None,
+    implicit_outputs: Optional[List[Union[str, Path]]] = None,
     name_transform: Callable[[Path], Union[str, Path]] = lambda s: s,
-):
+) -> FileTarget:
     """Build a C object created from the given C or Assembly source file."""
 
-    source = rule_input_resolve(source, path_only=True, single=True)
+    source_path = BuildInput.resolve(source, path_only=True, single=True)
 
-    name = name_transform(source.with_suffix(".o").value)
+    name = name_transform(source_path.with_suffix(".o").value)
 
-    with sum((bundles or []) + default_bundles.get(), Bundle()).scope() as (
+    with sum((bundles or []) + default_bundles.get(), Bundle())._scope() as (
         bundle_objects,
         bundle_ldlibs,
         bundle_order_only,
     ):
-        if source.suffix == ".c":
+        if source_path.suffix == ".c":
             cc = cc_provider.get()
             result = cc(
                 name,
                 inputs=[source],
                 implicit=implicit,
-                order_only=rule_input_add(order_only, bundle_order_only),
+                order_only=BuildInput.add(order_only, bundle_order_only),
                 implicit_outputs=implicit_outputs,
             )
-        elif source.suffix == ".S" or source.suffix == ".s":
+        elif source_path.suffix == ".S" or source_path.suffix == ".s":
             asm = asm_provider.get()
             result = asm(
                 name,
                 inputs=[source],
                 implicit=implicit,
-                order_only=rule_input_add(order_only, bundle_order_only),
+                order_only=BuildInput.add(order_only, bundle_order_only),
                 implicit_outputs=implicit_outputs,
             )
         else:
-            raise ValueError(f"Unknown C source extension for file: {source}")
+            raise ValueError(f"Unknown C source extension for file: {source_path}")
 
     objects.append(result)
     return result
@@ -136,23 +135,23 @@ def object(
 @contextmanager
 def _expand(
     name: str,
-    sources: List[Union[str, Path, RootRelativePath, FileTarget]],
-    inputs: Optional[RuleInput] = None,
+    sources: List[BuildInput.Single],
+    inputs: Optional[BuildInput.Type] = None,
     bundles: Optional[List[Bundle]] = None,
-    implicit: Optional[RuleInput] = None,
-    order_only: Optional[RuleInput] = None,
-):
+    implicit: Optional[BuildInput.Type] = None,
+    order_only: Optional[BuildInput.Type] = None,
+) -> Generator[Tuple[BuildInput.Type, BuildInput.Type], None, None]:
     if inputs is None:
         inputs = []
 
     if not isinstance(inputs, list):
         inputs = [inputs]
 
-    total_bundles = sum(bundles or [], Bundle())
+    total_bundles = sum((bundles or []) + default_bundles.get(), Bundle())
 
     yield (
-        (
-            [
+        BuildInput.add(
+            *[
                 object(
                     source,
                     implicit=implicit,
@@ -161,9 +160,9 @@ def _expand(
                     name_transform=lambda p: Path("obj") / name / p,
                 )
                 for source in sources
-            ]
-            + (inputs or [])
-            + total_bundles.objects
+            ],
+            inputs or [],
+            total_bundles.objects,
         ),
         total_bundles.ldlibs,
     )
@@ -172,14 +171,14 @@ def _expand(
 
 def binary(
     name: str,
-    sources: List[Union[str, Path, RootRelativePath, FileTarget]],
-    inputs: Optional[RuleInput] = None,
+    sources: List[BuildInput.Single],
+    inputs: Optional[BuildInput.Type] = None,
     bundles: Optional[List[Bundle]] = None,
-    implicit: Optional[RuleInput] = None,
-    order_only: Optional[RuleInput] = None,
-    implicit_outputs: Optional[RuleInput] = None,
+    implicit: Optional[BuildInput.Type] = None,
+    order_only: Optional[BuildInput.Type] = None,
+    implicit_outputs: Optional[List[Union[str, Path]]] = None,
     ldlibs: Optional[List[str]] = None,
-):
+) -> FileTarget:
     """Build a binary from the given C sources and additional inputs."""
 
     if ldlibs is None:
@@ -196,7 +195,7 @@ def binary(
             implicit=implicit,
             order_only=order_only,
         ) as (inputs, bundle_ldlibs),
-        ld["ldlibs"].provide(ldlibs + bundle_ldlibs),
+        ld["ldlibs"].provide(BuildInput.add(*ldlibs, bundle_ldlibs)),
     ):
         return ld(
             name,
@@ -208,13 +207,13 @@ def binary(
 
 def static_library(
     name: str,
-    sources: List[Union[str, Path, RootRelativePath, FileTarget]],
-    inputs: Optional[RuleInput] = None,
+    sources: List[BuildInput.Single],
+    inputs: Optional[BuildInput.Type] = None,
     bundles: Optional[List[Bundle]] = None,
-    implicit: Optional[RuleInput] = None,
-    order_only: Optional[RuleInput] = None,
-    implicit_outputs: Optional[RuleInput] = None,
-):
+    implicit: Optional[BuildInput.Type] = None,
+    order_only: Optional[BuildInput.Type] = None,
+    implicit_outputs: Optional[List[Union[str, Path]]] = None,
+) -> FileTarget:
     """Build a static archive from the given C sources and additional inputs."""
 
     ar = ar_provider.get()
@@ -232,16 +231,16 @@ def static_library(
 
 def static_library_bundle(
     name: str,
-    sources: List[Union[str, Path, RootRelativePath, FileTarget]],
-    inputs: Optional[List[str]] = None,
+    sources: List[BuildInput.Single],
+    inputs: Optional[BuildInput.Type] = None,
     bundles: Optional[List[Bundle]] = None,
     public_cflags: Optional[List[str]] = None,
     public_asflags: Optional[List[str]] = None,
     public_ldflags: Optional[List[str]] = None,
-    implicit: Optional[RuleInput] = None,
-    order_only: Optional[RuleInput] = None,
-    implicit_outputs: Optional[RuleInput] = None,
-):
+    implicit: Optional[BuildInput.Type] = None,
+    order_only: Optional[BuildInput.Type] = None,
+    implicit_outputs: Optional[List[Union[str, Path]]] = None,
+) -> Bundle:
     """Build a static archive from the given C sources and additional inputs and return a bundle which lets other binaries and libraries use this library."""
 
     if public_cflags is None:
@@ -266,9 +265,10 @@ def static_library_bundle(
             implicit_outputs=implicit_outputs,
         )
 
-    ldlibs = [library]
-    for bundle in (bundles or []) + default_bundles.get():
-        ldlibs += bundle.ldlibs
+    ldlibs: BuildInput.Type = BuildInput.add(
+        library.path,
+        *[bundle.ldlibs for bundle in (bundles or []) + default_bundles.get()],
+    )
 
     return Bundle(
         ldlibs=ldlibs,
@@ -278,14 +278,20 @@ def static_library_bundle(
     )
 
 
+ccbinvar = ccbin
+asbinvar = asbin
+ldbinvar = ldbin
+arbinvar = arbin
+
+
 def toolchain(
-    ccbin: Union[str, List[str]],
-    arbin: Union[str, List[str]],
-    asbin: Optional[Union[str, List[str]]] = None,
-    ldbin: Optional[Union[str, List[str]]] = None,
-):
+    ccbin: BuildInput.Type,
+    arbin: BuildInput.Type,
+    asbin: Optional[BuildInput.Type] = None,
+    ldbin: Optional[BuildInput.Type] = None,
+) -> Scope:
     """
-    Use the given C toolchain.
+    Return a scope using the given C toolchain.
     The `ccbin` is used for `asbin` and `ldbin` if they aren't provided.
     """
 
@@ -295,30 +301,6 @@ def toolchain(
     if ldbin is None:
         ldbin = ccbin
 
-    if isinstance(ccbin, list) and len(ccbin) == 1:
-        ccbin = ccbin[0]
-
-    if isinstance(asbin, list) and len(asbin) == 1:
-        asbin = asbin[0]
-
-    if isinstance(ldbin, list) and len(ldbin) == 1:
-        ldbin = ldbin[0]
-
-    if isinstance(arbin, list) and len(arbin) == 1:
-        arbin = arbin[0]
-
-    if isinstance(ccbin, str) and not Path(ccbin).exists():
-        ccbin = shutil.which(ccbin)
-
-    if isinstance(asbin, str) and not Path(asbin).exists():
-        asbin = shutil.which(asbin)
-
-    if isinstance(ldbin, str) and not Path(ldbin).exists():
-        ldbin = shutil.which(ldbin)
-
-    if isinstance(arbin, str) and not Path(arbin).exists():
-        arbin = shutil.which(arbin)
-
     return (
         ccbinvar.provide(ccbin)
         | asbinvar.provide(asbin)
@@ -327,8 +309,18 @@ def toolchain(
     )
 
 
-def add_include_path(path: RuleInput):
-    return cflags.extend([f"-I{p}" for p in rule_input_resolve(path, path_only=True)])
+def add_include_path(
+    path: BuildInput.Type, extend_cflags=True, extend_asflags=True
+) -> Scope:
+    flags = [f"-I{p}" for p in BuildInput.resolve(path, path_only=True)]
+
+    scopes: List[Scope] = []
+    if extend_cflags:
+        scopes.append(cflags.extend(flags))
+    if extend_asflags:
+        scopes.append(asflags.extend(flags))
+
+    return ScopeList(scopes)
 
 
 __all__ = [
@@ -336,10 +328,10 @@ __all__ = [
     "asm",
     "ld",
     "ar",
-    "ccbinvar",
-    "asbinvar",
-    "ldbinvar",
-    "arbinvar",
+    "ccbin",
+    "asbin",
+    "ldbin",
+    "arbin",
     "cc_provider",
     "asm_provider",
     "ld_provider",
@@ -349,10 +341,11 @@ __all__ = [
     "ldflags",
     "Bundle",
     "object",
-    "objects",
     "binary",
     "static_library",
     "static_library_bundle",
     "toolchain",
     "add_include_path",
+    "objects",
+    "default_bundles",
 ]

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Union
+from typing import Iterable, List, Optional, Union
 
 
 @dataclass(frozen=True)
@@ -16,74 +16,109 @@ class RootRelativePath:
     If the contained path is absolute, it's interpreted as an absolute path.
     """
 
-    def __init__(self, value: Union[str, Path, "RootRelativePath"]):
+    def __init__(
+        self,
+        value: Union[str, Path, "RootRelativePath"],
+        _srcdir: Optional["RootRelativePath"] = None,
+        _use_current_source_dir=True,
+    ) -> None:
         if isinstance(value, RootRelativePath):
-            value = value.value
+            self.value = value.value
+            return
 
-        self.value = Path(value)
+        resolved_srcdir = _srcdir.value if _srcdir is not None else None
 
-    def __str__(self):
+        if resolved_srcdir is None:
+            from bob.core.context import BobContext
+
+            if _use_current_source_dir and BobContext._instance is not None:
+                resolved_srcdir = BobContext._instance.current_source_dir.value
+            else:
+                resolved_srcdir = Path(".")
+
+        self.value = resolved_srcdir / Path(value)
+
+    def __str__(self) -> str:
         return self.value.__str__()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.value.__repr__()
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if not isinstance(other, RootRelativePath):
             return self.value == other
         return self.value == other.value
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.value)
 
-    def is_file(self):
+    def __truediv__(self, other) -> "RootRelativePath":
+        return RootRelativePath(self.value / other, _use_current_source_dir=False)
+
+    def is_file(self) -> bool:
         return self.value.is_file()
 
-    def is_dir(self):
+    def is_dir(self) -> bool:
         return self.value.is_dir()
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.value.name
 
     @property
-    def suffix(self):
+    def suffix(self) -> str:
         return self.value.suffix
 
     @property
-    def suffixes(self):
+    def suffixes(self) -> List[str]:
         return self.value.suffixes
 
     @property
-    def stem(self):
+    def stem(self) -> str:
         return self.value.stem
 
-    def with_name(self, name: str):
-        return RootRelativePath(self.value.with_name(name))
+    def with_name(self, name: str) -> "RootRelativePath":
+        return RootRelativePath(
+            self.value.with_name(name), _use_current_source_dir=False
+        )
 
-    def with_stem(self, stem: str):
-        return RootRelativePath(self.value.with_stem(stem))
+    def with_stem(self, stem: str) -> "RootRelativePath":
+        return RootRelativePath(
+            self.value.with_stem(stem), _use_current_source_dir=False
+        )
 
-    def with_suffix(self, suffix: str):
-        return RootRelativePath(self.value.with_suffix(suffix))
-
-    def __truediv__(self, other):
-        return RootRelativePath(self.value / other)
+    def with_suffix(self, suffix: str) -> "RootRelativePath":
+        return RootRelativePath(
+            self.value.with_suffix(suffix), _use_current_source_dir=False
+        )
 
     @property
-    def parent(self):
+    def parent(self) -> "RootRelativePath":
         if self.value.parent == self.value:
             raise ValueError(
                 f"Cannot get the parent of {self}, escaping build directory!"
             )
 
-        return RootRelativePath(self.value.parent)
+        return RootRelativePath(self.value.parent, _use_current_source_dir=False)
 
-    def glob(self, pattern: str):
-        return (RootRelativePath(p) for p in self.value.glob(pattern))
+    def glob(self, pattern: str) -> Iterable["RootRelativePath"]:
+        return (
+            RootRelativePath(p, _use_current_source_dir=False)
+            for p in self.value.glob(pattern)
+        )
 
-    def rglob(self, pattern: str):
-        return (RootRelativePath(p) for p in self.value.rglob(pattern))
+    def rglob(self, pattern: str) -> Iterable["RootRelativePath"]:
+        return (
+            RootRelativePath(p, _use_current_source_dir=False)
+            for p in self.value.rglob(pattern)
+        )
+
+    def resolve(self) -> Path:
+        from bob.core.context import BobContext
+
+        context = BobContext.get()
+
+        return (context.root / self.value).resolve()
 
 
 @dataclass(frozen=True)
