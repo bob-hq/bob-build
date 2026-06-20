@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from textwrap import dedent
 
 import pytest
 
@@ -31,3 +32,23 @@ def test_configure(pytestconfig: pytest.Config, tmp_path: Path, case: str) -> No
     else:
         expected = expected_ninja_path.read_text()
         assert actual == expected
+
+
+def test_ninja_removed_when_configure_fails(tmp_path: Path) -> None:
+    os.chdir(tmp_path)
+    bobfile = tmp_path / "Bobfile"
+    bobfile.write_text(
+        dedent("""
+            from bob.prelude import *
+            
+            Rule("echo hi > $out", description="ECHO").build("hi")
+            raise Exception("")
+    """)
+    )
+
+    builddir = Path("build")
+
+    with pytest.raises(Exception):
+        configure(builddir, bobfile)
+
+    assert not get_build_ninja_path(builddir).exists()
