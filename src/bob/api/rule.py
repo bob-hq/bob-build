@@ -1,3 +1,7 @@
+from string import Template
+
+from bob.api.scope import ScopeList
+from bob.api.variable import NINJA_PROVIDED_VARIABLES, Variable
 from bob.core.context import Context
 
 
@@ -11,6 +15,7 @@ class Rule:
         restat=False,
         generator=False,
         pool: None | str = None,
+        variables: None | dict[str, str] = None,
     ):
         context = Context.current()
 
@@ -22,7 +27,37 @@ class Rule:
             name = "".join(c for c in description.lower() if c.isalnum()) + "-" + name
             description += " $out"
 
+        if variables is None:
+            variables = {}
+
+        command_template = Template(command)
+        depfile_template = Template(depfile) if depfile is not None else None
+        description_template = (
+            Template(description) if description is not None else None
+        )
+
+        variable_names: set[str] = set()
+        for template_name, template in (
+            ("command", command_template),
+            ("depfile", depfile_template),
+            ("description", description_template),
+        ):
+            if template is None:
+                continue
+
+            if not template.is_valid():
+                raise ValueError(f"Invalid {template_name}: {depfile}")
+
+            variable_names.update(template.get_identifiers())
+
         self.name = name
+        self.command = command_template
+        self.depfile = Template(depfile) if depfile is not None else None
+        self.variable_names = variable_names
+        self.variables: dict[str, str] = {}
+
+        for key, value in variables.items():
+            self[key].provide(value)
 
         assert context.writer is not None
         context.writer.rule(
@@ -37,6 +72,9 @@ class Rule:
         )
         context.writer.newline()
 
+    def __getitem__(self, name: str) -> Variable:
+        return Variable(name, self)
+
     def build(
         self,
         *outputs: str,
@@ -46,17 +84,30 @@ class Rule:
         implicit_outputs: None | list[str] = None,
         pool: None | str = None,
         dyndep: None | str = None,
+        variables: None | dict[str, str] = None,
     ):
-        context = Context.current()
+        if variables is None:
+            variables = {}
 
-        assert context.writer is not None
-        context.writer.build(
-            outputs=[str(context.builddir / output) for output in outputs],
-            rule=self.name,
-            inputs=inputs,
-            implicit=implicit,
-            order_only=order_only,
-            implicit_outputs=implicit_outputs,
-            pool=pool,
-            dyndep=dyndep,
-        )
+        with ScopeList([self[key].provide(value) for key, value in variables.items()]):
+            for variable in self.variable_names:
+                if (
+                    variable not in NINJA_PROVIDED_VARIABLES
+                    and variable not in self.variables
+                ):
+                    raise ValueError(f'Variable "{variable}" is uninitialized')
+
+            context = Context.current()
+
+            assert context.writer is not None
+            context.writer.build(
+                outputs=[str(context.builddir / output) for output in outputs],
+                rule=self.name,
+                inputs=inputs,
+                implicit=implicit,
+                order_only=order_only,
+                variables=self.variables,
+                implicit_outputs=implicit_outputs,
+                pool=pool,
+                dyndep=dyndep,
+            )

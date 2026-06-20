@@ -1,0 +1,18 @@
+from bob.prelude import *
+
+rule = Rule("echo $something > $out", variables={"something": "hi"})
+another = Rule("echo $something $something > $out")
+
+rule.build("hi")
+
+with rule["something"].provide("bye"):
+    rule.build("bye")
+
+rule.build("hi-again")
+
+with Variable("something", rule, another).provide("bye"):
+    rule.build("bye-again")
+    another.build("bye-another")
+
+with rule["something"].provide("$money"):
+    rule.build("escape")

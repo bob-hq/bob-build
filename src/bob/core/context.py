@@ -18,6 +18,8 @@ class Context:
     def __enter__(self) -> Self:
         assert Context._CURRENT is None
 
+        (self.builddir / BOB_BUILDDIR_SUBDIRECTORY).mkdir(parents=True, exist_ok=True)
+
         self.writer = Writer(
             open(get_build_ninja_path(self.builddir), "w"),  # ty: ignore[invalid-argument-type]
         )

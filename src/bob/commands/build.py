@@ -1,8 +1,9 @@
 import os
 from pathlib import Path
 
+
 from bob.constants import get_build_ninja_path
-from bob.core.configure import configure
+from bob.core.context import Context
 
 
 def run_ninja(builddir: Path) -> None:
@@ -16,6 +17,7 @@ def run_ninja(builddir: Path) -> None:
 
 
 def build(builddir: Path, bobfile: Path) -> None:
-    configure(builddir, bobfile)
+    with Context(builddir) as context:
+        context.evaluate(bobfile)
 
     run_ninja(builddir)
