@@ -1,7 +1,5 @@
 from typing import TYPE_CHECKING
 
-from ninja.ninja_syntax import escape as ninja_escape
-
 from bob.api.scope import DictionaryScope, Scope, ScopeList
 
 if TYPE_CHECKING:
@@ -36,12 +34,17 @@ class Variable:
         self.rules = rules
         self.name = name
 
-    def provide(self, value: str) -> Scope:
-        resolved_value = ninja_escape(value)
+    def get(self) -> str:
+        return self.rules[0].variables[self.name]
+
+    def set(self, value: str) -> Scope:
+        return ScopeList(
+            [DictionaryScope(rule.variables, {self.name: value}) for rule in self.rules]
+        )
+
+    def add(self, value: str) -> Scope:
+        value = self.get() + value
 
         return ScopeList(
-            [
-                DictionaryScope(rule.variables, {self.name: resolved_value})
-                for rule in self.rules
-            ]
+            [DictionaryScope(rule.variables, {self.name: value}) for rule in self.rules]
         )

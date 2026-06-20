@@ -4,15 +4,24 @@ rule = Rule("echo $something > $out", variables={"something": "hi"})
 another = Rule("echo $something $something > $out")
 
 rule.build("hi")
+assert rule["something"].get() == "hi"
 
-with rule["something"].provide("bye"):
+with rule["something"].set("bye"):
+    assert rule["something"].get() == "bye"
     rule.build("bye")
 
 rule.build("hi-again")
+assert rule["something"].get() == "hi"
 
-with Variable("something", rule, another).provide("bye"):
+with Variable("something", rule, another).set("bye"):
+    assert rule["something"].get() == "bye"
+    assert another["something"].get() == "bye"
     rule.build("bye-again")
     another.build("bye-another")
 
-with rule["something"].provide("$money"):
+with rule["something"].add(" hi"):
+    assert rule["something"].get() == "hi hi"
+
+with rule["something"].set("$money"):
+    assert rule["something"].get() == "$money"
     rule.build("escape")

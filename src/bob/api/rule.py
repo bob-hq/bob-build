@@ -1,5 +1,7 @@
 from string import Template
 
+from ninja.ninja_syntax import escape as ninja_escape
+
 from bob.api.scope import ScopeList
 from bob.api.variable import NINJA_PROVIDED_VARIABLES, Variable
 from bob.core.context import Context
@@ -63,7 +65,7 @@ class Rule:
         self.has_compile_command = compile_command is not None
 
         for key, value in variables.items():
-            self[key].provide(value)
+            self[key].set(value)
 
         assert context.writer is not None
         assert context.compdb_writer is not None
@@ -98,7 +100,7 @@ class Rule:
         if variables is None:
             variables = {}
 
-        with ScopeList([self[key].provide(value) for key, value in variables.items()]):
+        with ScopeList([self[key].set(value) for key, value in variables.items()]):
             for variable in self.variable_names:
                 if (
                     variable not in NINJA_PROVIDED_VARIABLES
@@ -110,6 +112,10 @@ class Rule:
 
             resolved_outputs = [str(context.builddir / output) for output in outputs]
 
+            resolved_variables = {
+                key: ninja_escape(value) for key, value in self.variables.items()
+            }
+
             assert context.writer is not None
             assert context.compdb_writer is not None
             context.writer.build(
@@ -118,7 +124,7 @@ class Rule:
                 inputs=inputs,
                 implicit=implicit,
                 order_only=order_only,
-                variables=self.variables,
+                variables=resolved_variables,
                 implicit_outputs=implicit_outputs,
                 pool=pool,
                 dyndep=dyndep,
