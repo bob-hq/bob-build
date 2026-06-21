@@ -1,5 +1,7 @@
 import logging
 import runpy
+import sys
+from pathlib import Path
 
 import click
 import rich_click
@@ -13,7 +15,17 @@ console = Console()
 
 
 def setup() -> None:
-    rich_traceback_install(console=console, suppress=[click, rich_click, bob, runpy])
+    rich_traceback_install(
+        console=console,
+        suppress=[
+            click,
+            rich_click,
+            bob,
+            runpy,
+            # .venv/bin/bob
+            str(Path(sys.executable).with_name("bob")),
+        ],
+    )
 
     logging.basicConfig(
         level=logging.WARNING,
