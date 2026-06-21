@@ -1,3 +1,5 @@
 from bob.prelude import *
 
-Rule("echo hi > $out").build("hi")
+hi = Rule("echo hi > $out").build("hi")
+
+phony("hola", [hi])

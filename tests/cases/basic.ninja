@@ -5,6 +5,7 @@ rule bob-1
   command = echo hi > $out
 
 build build/hi: bob-1
+build hola: phony build/hi
 rule configure-bob-2
   command = FORCE_COLOR=1 $bobbin configure -f $bobfile
   description = CONFIGURE $out

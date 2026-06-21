@@ -15,8 +15,13 @@ class FileTarget:
     path: Path
 
 
+@dataclass(frozen=True)
+class PhonyTarget:
+    name: str
+
+
 class RuleInput:
-    Type: TypeAlias = str | Path | FileTarget
+    Type: TypeAlias = str | Path | FileTarget | PhonyTarget
 
     def __init__(self):
         raise Exception("RuleInput is a utility namespace")
@@ -80,6 +85,9 @@ class RuleInput:
 
             if isinstance(value, str) and convert_strings_to_paths:
                 value = Path(value)
+
+            if isinstance(value, PhonyTarget):
+                value = value.name
 
             if path_only and not isinstance(value, Path):
                 raise ValueError(f"Failed to resolve {value}")
@@ -323,3 +331,21 @@ class Rule[OutputType]:
                 return FileTarget(resolved_outputs[0])  # ty:ignore[invalid-return-type]
             else:
                 return [FileTarget(output) for output in resolved_outputs]  # ty:ignore[invalid-return-type]
+
+
+def phony(name: str, inputs: list[RuleInput.Type]) -> PhonyTarget:
+    context = Context.current()
+
+    assert context.writer is not None
+    context.writer.build(
+        [name],
+        rule="phony",
+        inputs=RuleInput.resolve(
+            *inputs,
+            convert_strings_to_paths=False,
+            convert_to_string=True,
+            single=False,
+        ),
+    )
+
+    return PhonyTarget(name)
