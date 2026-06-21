@@ -1,16 +1,22 @@
 import subprocess
 from pathlib import Path
+from typing import Sequence
 
 from bob.commands.configure import configure
 from bob.constants import COMPDB_PATH, get_compdb_ninja_path
 
 
 def compdb(
-    builddir: Path, bobfile: Path, dont_symlink: bool, wait=True
+    builddir: Path,
+    bobfile: Path,
+    dont_symlink: bool,
+    configs: Sequence[str] = (),
+    use_current_configs=False,
+    wait=True,
 ) -> subprocess.Popen:
     build_compdb_path = builddir / COMPDB_PATH
 
-    configure(builddir, bobfile, lazy=True)
+    configure(builddir, bobfile, configs, use_current_configs, lazy=True)
 
     p = subprocess.Popen(
         f"ninja -f {get_compdb_ninja_path(builddir)} -t compdb > {build_compdb_path}",

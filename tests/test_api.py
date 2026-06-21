@@ -10,7 +10,7 @@ from bob.core.context import Context
 
 @pytest.fixture()
 def context(unique_tmp_path, builddir: Path) -> Generator[Context, None, None]:
-    with Context(builddir) as context:
+    with Context(builddir, {}) as context:
         yield context
 
 

@@ -25,16 +25,24 @@ def build(
     do_clean=False,
     no_compdb=False,
     symlink_compdb=False,
+    configs: Sequence[str] = (),
+    use_current_configs=False,
     targets: Sequence[str] = (),
 ) -> None:
     if do_clean:
         clean(builddir)
 
-    configure(builddir, bobfile, lazy=True)
+    configure(builddir, bobfile, configs, use_current_configs, lazy=True)
 
     p: subprocess.Popen | None
     if not no_compdb:
-        p = compdb(builddir, bobfile, dont_symlink=not symlink_compdb, wait=False)
+        p = compdb(
+            builddir,
+            bobfile,
+            dont_symlink=not symlink_compdb,
+            use_current_configs=True,
+            wait=False,
+        )
 
     run_ninja(builddir, targets)
 

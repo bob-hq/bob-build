@@ -11,12 +11,11 @@ rule bob-2
 build build/bye: bob-2 build/hi
 build build/byebye: bob-2 build/hi
 rule configure-bob-3
-  command = FORCE_COLOR=1 $bobbin configure -f $bobfile
+  command = FORCE_COLOR=1 $bobbin configure --use-current-configs -f $bobfile
   description = CONFIGURE $out
   generator = 1
   pool = console
 
-build build/.bob/build.ninja: configure-bob-3 | $
-    $root/tests/cases/rule-input.bob
+build build/.bob/build.ninja: configure-bob-3 | $root/tests/cases/rule-input.bob build/.bob/configs.json
   bobbin = $root/.venv/bin/python -m bob
   bobfile = $root/tests/cases/rule-input.bob

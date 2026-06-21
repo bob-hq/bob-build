@@ -4,10 +4,14 @@ from pathlib import Path
 
 import rich_click as click
 
-from bob.constants import BOB_BUILDDIR_SUBDIRECTORY, DEFAULT_BUILDDIR
+from bob.constants import (
+    BOB_BUILDDIR_SUBDIRECTORY,
+    DEFAULT_BUILDDIR,
+    get_used_configs_path,
+)
 
 
-def complete_targets(ctx, param, incomplete: str):
+def complete_targets(ctx: click.Context, param: click.Parameter, incomplete: str):
     p = subprocess.run(
         [
             "ninja",
@@ -31,6 +35,19 @@ def complete_targets(ctx, param, incomplete: str):
     ]
 
 
+def complete_configs(ctx: click.Context, param: click.Parameter, incomplete: str):
+    used_configs_path = get_used_configs_path(DEFAULT_BUILDDIR)
+
+    if not used_configs_path.is_file():
+        return []
+
+    return [
+        f"{config}="
+        for config in used_configs_path.read_text().splitlines()
+        if incomplete in config
+    ]
+
+
 @click.group
 def cli() -> None:
     """The ergonomic Ninja-based build system."""
@@ -51,9 +68,22 @@ def cli() -> None:
     "-f",
     "bobfile",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    help="The input Bobfile",
+    help="The input Bobfile.",
     default=Path("Bobfile"),
     show_default=True,
+)
+@click.option(
+    "-c",
+    "--config",
+    "configs",
+    multiple=True,
+    help="Supply the given config option.",
+    shell_complete=complete_configs,
+)
+@click.option(
+    "--use-current-configs",
+    is_flag=True,
+    help="Use the current configs saved from previously configuring.",
 )
 def configure(**kwargs) -> None:
     """Generate the Ninja file to build the project."""
@@ -75,18 +105,31 @@ def configure(**kwargs) -> None:
     "-f",
     "bobfile",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    help="The input Bobfile",
+    help="The input Bobfile.",
     default=Path("Bobfile"),
     show_default=True,
 )
-@click.option("--clean", "do_clean", is_flag=True, help="Clean before building")
+@click.option(
+    "-c",
+    "--config",
+    "configs",
+    multiple=True,
+    help="Supply the given config option.",
+    shell_complete=complete_configs,
+)
+@click.option(
+    "--use-current-configs",
+    is_flag=True,
+    help="Use the current configs saved from previously configuring.",
+)
+@click.option("--clean", "do_clean", is_flag=True, help="Clean before building.")
 @click.option(
     "--no-compdb", is_flag=True, help="Don't create a compilation DB for this build."
 )
 @click.option(
     "--symlink-compdb",
     is_flag=True,
-    help="Create a symlink to the compilation DB in the current directory",
+    help="Create a symlink to the compilation DB in the current directory.",
 )
 @click.argument("targets", shell_complete=complete_targets, nargs=-1)
 def build(**kwargs) -> None:
@@ -130,7 +173,7 @@ def clean(**kwargs):
     "-f",
     "bobfile",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    help="The input Bobfile",
+    help="The input Bobfile.",
     default=Path("Bobfile"),
     show_default=True,
 )
@@ -138,6 +181,19 @@ def clean(**kwargs):
     "--dont-symlink",
     help="Don't create a symlink in the current directory.",
     is_flag=True,
+)
+@click.option(
+    "-c",
+    "--config",
+    "configs",
+    multiple=True,
+    help="Supply the given config option.",
+    shell_complete=complete_configs,
+)
+@click.option(
+    "--use-current-configs",
+    is_flag=True,
+    help="Use the current configs saved from previously configuring.",
 )
 def compdb(**kwargs):
     """Create a compilation database for the project."""
