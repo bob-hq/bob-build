@@ -63,6 +63,7 @@ def cli() -> None:
 
 @cli.command()
 @click.option(
+    "-B",
     "--builddir",
     help="The directory to put the Bob outputs in.",
     type=click.Path(file_okay=False, path_type=Path),
@@ -70,6 +71,7 @@ def cli() -> None:
     show_default=True,
 )
 @click.option(
+    "--bobfile",
     "-f",
     "bobfile",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
@@ -100,6 +102,7 @@ def configure(**kwargs) -> None:
 
 @cli.command()
 @click.option(
+    "-B",
     "--builddir",
     help="The directory to put the Bob outputs in.",
     type=click.Path(file_okay=False, path_type=Path),
@@ -107,6 +110,7 @@ def configure(**kwargs) -> None:
     show_default=True,
 )
 @click.option(
+    "--bobfile",
     "-f",
     "bobfile",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
@@ -123,6 +127,7 @@ def configure(**kwargs) -> None:
     shell_complete=complete_configs,
 )
 @click.option(
+    "-u",
     "--use-current-configs",
     is_flag=True,
     help="Use the current configs saved from previously configuring.",
@@ -136,6 +141,20 @@ def configure(**kwargs) -> None:
     is_flag=True,
     help="Create a symlink to the compilation DB in the current directory.",
 )
+@click.option(
+    "-j",
+    "--jobs",
+    "jobs",
+    type=int,
+    default=os.cpu_count(),
+    help="Run this many jobs in parallel (0 means infinity).",
+    show_default=True,
+)
+@click.option(
+    "--no-jobserver",
+    is_flag=True,
+    help="Don't provide a jobserver.",
+)
 @click.argument("targets", shell_complete=complete_targets, nargs=-1)
 def build(**kwargs) -> None:
     """Build the given Bob project."""
@@ -147,6 +166,7 @@ def build(**kwargs) -> None:
 
 @cli.command
 @click.option(
+    "-B",
     "--builddir",
     help="The directory to put the Bob outputs in.",
     type=click.Path(file_okay=False, path_type=Path),
@@ -168,6 +188,7 @@ def clean(**kwargs):
 
 @cli.command
 @click.option(
+    "-B",
     "--builddir",
     help="The directory to put the Bob outputs in.",
     type=click.Path(file_okay=False, path_type=Path),
@@ -175,6 +196,7 @@ def clean(**kwargs):
     show_default=True,
 )
 @click.option(
+    "--bobfile",
     "-f",
     "bobfile",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),

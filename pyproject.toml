@@ -30,6 +30,10 @@ dev = [
 
 [tool.ruff.lint]
 ignore = ["F403", "F405"]
+exclude = ["src/bob/external/**"]
+
+[tool.ty.src]
+exclude = ["src/bob/external/**"]
 
 # TODO: https://github.com/pallets/click/issues/3502
 [tool.uv]
