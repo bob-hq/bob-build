@@ -3,3 +3,5 @@ from bob.prelude import *
 hi = Rule("echo hi > $out").build("hi")
 
 phony("hola", [hi])
+
+shell_output_rule("cat magic").build("magic")

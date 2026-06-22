@@ -137,6 +137,7 @@ class Rule[OutputType]:
         restat=False,
         generator=False,
         pool: None | str = None,
+        always=False,
         compile_command: None | str = None,
         single_input=False,
         single_output: Literal[True] = True,
@@ -153,6 +154,7 @@ class Rule[OutputType]:
         restat=False,
         generator=False,
         pool: None | str = None,
+        always=False,
         compile_command: None | str = None,
         single_input=False,
         single_output: Literal[False] = False,
@@ -177,6 +179,7 @@ class Rule[OutputType]:
         restat=False,
         generator=False,
         pool: None | str = None,
+        always=False,
         compile_command: None | str = None,
         single_input=False,
         single_output=True,
@@ -227,6 +230,7 @@ class Rule[OutputType]:
         self.has_compile_command = compile_command is not None
         self.single_input = single_input
         self.single_output = single_output
+        self.always = always
 
         for key, value in variables.items():
             self[key].set(
@@ -299,6 +303,11 @@ class Rule[OutputType]:
                 key: ninja_escape(value) for key, value in self.variables.items()
             }
 
+            if self.always:
+                implicit = implicit or []
+                assert context.always is not None
+                implicit.append(context.always)
+
             resolved_inputs = (
                 RuleInput.resolve(
                     *inputs,
@@ -309,6 +318,16 @@ class Rule[OutputType]:
                 if inputs is not None
                 else None
             )
+            resolved_implicit = (
+                RuleInput.resolve(
+                    *implicit,
+                    convert_strings_to_paths=False,
+                    convert_to_string=True,
+                    single=False,
+                )
+                if implicit is not None
+                else None
+            )
 
             assert context.writer is not None
             assert context.compdb_writer is not None
@@ -316,14 +335,7 @@ class Rule[OutputType]:
                 outputs=[str(output) for output in resolved_outputs],
                 rule=self.name,
                 inputs=resolved_inputs,
-                implicit=RuleInput.resolve(
-                    *implicit,
-                    convert_strings_to_paths=False,
-                    convert_to_string=True,
-                    single=False,
-                )
-                if implicit is not None
-                else None,
+                implicit=resolved_implicit,
                 order_only=RuleInput.resolve(
                     *order_only,
                     convert_strings_to_paths=False,
@@ -353,7 +365,7 @@ class Rule[OutputType]:
                 return [FileTarget(output) for output in resolved_outputs]  # ty:ignore[invalid-return-type]
 
 
-def phony(name: str, inputs: list[RuleInput.Type]) -> PhonyTarget:
+def phony(name: str, inputs: None | list[RuleInput.Type] = None) -> PhonyTarget:
     context = Context.current()
 
     assert context.writer is not None
@@ -365,7 +377,22 @@ def phony(name: str, inputs: list[RuleInput.Type]) -> PhonyTarget:
             convert_strings_to_paths=False,
             convert_to_string=True,
             single=False,
-        ),
+        )
+        if inputs is not None
+        else None,
     )
 
     return PhonyTarget(name)
+
+
+def shell_output_rule(
+    command: str, pool: None | str = None, single_input=False
+) -> Rule[FileTarget]:
+    return Rule(
+        command=f"(({command}) > $out.new && cmp -s $out $out.new || mv $out.new $out); rm -f $out.new",
+        description="SHELL OUTPUT",
+        restat=True,
+        pool=pool,
+        always=True,
+        single_input=single_input,
+    )

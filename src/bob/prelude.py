@@ -1,6 +1,6 @@
 from bob.api.general import config
 from bob.api.path import glob, read
-from bob.api.rule import Rule, RuleInput, phony
+from bob.api.rule import Rule, RuleInput, phony, shell_output_rule
 from bob.api.scope import Scope, ScopeList
 from bob.api.variable import Variable
 
@@ -14,4 +14,5 @@ __all__ = [
     "read",
     "glob",
     "config",
+    "shell_output_rule",
 ]
