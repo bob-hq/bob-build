@@ -1,0 +1,22 @@
+from pathlib import Path
+
+from bob.prelude import *
+
+r = Rule("echo hi > $out")
+
+with build_in("somewhere"):
+    assert builddir() == Path("somewhere")
+    r.build("in-somewhere")
+
+    with build_in("deeper"):
+        assert builddir() == Path("somewhere") / "deeper"
+        r.build("in-deeper")
+
+with build_in(Path("another")):
+    assert builddir() == Path("another")
+    r.build("in-another")
+
+with src_in(Path("inside")), src_in("deep"):
+    r.build("resolve-src", inputs=["in-deep", Path("another-in-deep")])
+
+r.build("resolve-src-outside", inputs=["outside"])

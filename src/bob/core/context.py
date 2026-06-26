@@ -22,6 +22,7 @@ class Context:
         from bob.api.rule import PhonyTarget
 
         self.builddir = builddir
+        self.srcdir = Path(".")
         self.configs = configs
         self.used_configs: set[str] = set()
         self.writer: None | Writer = None
@@ -30,6 +31,9 @@ class Context:
         self.variables: dict[str, Any] = {}
         self.bobfile: None | Path = None
         self.always: PhonyTarget | None = None
+
+        self.current_build_subdir = Path(".")
+        self.current_src_subdir = Path(".")
 
     def __enter__(self) -> Self:
         assert Context._CURRENT is None

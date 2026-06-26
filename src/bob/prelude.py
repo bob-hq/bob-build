@@ -1,5 +1,5 @@
 from bob.api.general import config
-from bob.api.path import glob, read
+from bob.api.path import build_in, builddir, glob, read, src_in, srcdir
 from bob.api.rule import (
     FileTarget,
     PhonyTarget,
@@ -29,4 +29,8 @@ __all__ = [
     "shell",
     "ScopedValue",
     "ScopedRule",
+    "build_in",
+    "src_in",
+    "builddir",
+    "srcdir",
 ]

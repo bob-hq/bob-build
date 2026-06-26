@@ -2,7 +2,32 @@ from pathlib import Path
 from typing import Literal, overload
 
 from bob.api.rule import RuleInput
+from bob.api.scope import AttributeScope, Scope
 from bob.core.context import Context
+
+
+def build_in(path: str | Path) -> Scope:
+    context = Context.current()
+    return AttributeScope(
+        context, {"current_build_subdir": context.current_build_subdir / path}
+    )
+
+
+def src_in(path: str | Path) -> Scope:
+    context = Context.current()
+    return AttributeScope(
+        context, {"current_src_subdir": context.current_src_subdir / path}
+    )
+
+
+def builddir() -> Path:
+    context = Context.current()
+    return context.current_build_subdir
+
+
+def srcdir() -> Path:
+    context = Context.current()
+    return context.current_src_subdir
 
 
 @overload

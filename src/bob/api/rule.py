@@ -99,6 +99,7 @@ class RuleInput:
         convert_to_string: bool = False,
         single: bool = True,
     ) -> Path | str | list[str] | list[Path] | list[Path | str]:
+        context = Context.current()
         result: list[Path | str] = []
 
         if single:
@@ -110,6 +111,9 @@ class RuleInput:
 
             if isinstance(value, str) and convert_strings_to_paths:
                 value = Path(value)
+
+            if isinstance(value, Path):
+                value = context.current_src_subdir / value
 
             if isinstance(value, PhonyTarget):
                 value = value.name
@@ -293,7 +297,10 @@ class Rule[OutputType]:
 
             context = Context.current()
 
-            resolved_outputs = [context.builddir / output for output in outputs]
+            resolved_outputs = [
+                context.builddir / context.current_build_subdir / output
+                for output in outputs
+            ]
 
             resolved_variables = {
                 key: shlex.join(
@@ -324,7 +331,7 @@ class Rule[OutputType]:
             resolved_inputs = (
                 RuleInput.resolve(
                     *inputs,
-                    convert_strings_to_paths=False,
+                    convert_strings_to_paths=True,
                     convert_to_string=True,
                     single=False,
                 )
@@ -334,7 +341,7 @@ class Rule[OutputType]:
             resolved_implicit = (
                 RuleInput.resolve(
                     *implicit,
-                    convert_strings_to_paths=False,
+                    convert_strings_to_paths=True,
                     convert_to_string=True,
                     single=False,
                 )
@@ -351,7 +358,7 @@ class Rule[OutputType]:
                 implicit=resolved_implicit,
                 order_only=RuleInput.resolve(
                     *order_only,
-                    convert_strings_to_paths=False,
+                    convert_strings_to_paths=True,
                     convert_to_string=True,
                     single=False,
                 )
@@ -387,7 +394,7 @@ def phony(name: str, inputs: None | list[RuleInput.Type] = None) -> PhonyTarget:
         rule="phony",
         inputs=RuleInput.resolve(
             *inputs,
-            convert_strings_to_paths=False,
+            convert_strings_to_paths=True,
             convert_to_string=True,
             single=False,
         )
