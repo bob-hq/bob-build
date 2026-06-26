@@ -11,6 +11,7 @@ from bob.api.rule import (
 )
 from bob.api.scope import Scope, ScopeList
 from bob.api.scoped_value import ScopedRule, ScopedValue
+from bob.api.subproject import export, include, subbob, use
 from bob.api.variable import Variable
 
 __all__ = [
@@ -33,4 +34,8 @@ __all__ = [
     "src_in",
     "builddir",
     "srcdir",
+    "include",
+    "subbob",
+    "export",
+    "use",
 ]

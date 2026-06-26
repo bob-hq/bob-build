@@ -1,0 +1,1 @@
+built = r.build("from-included", inputs=["hi"])

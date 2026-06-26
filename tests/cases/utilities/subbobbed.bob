@@ -1,0 +1,9 @@
+from bob.prelude import *
+
+r = use("r")
+
+export(
+    built=r.build(
+        "dummy", inputs=["subbob-input", config("subbob-config", required=True)]
+    )
+)

@@ -29,6 +29,8 @@ class Context:
         self.compdb_writer: None | Writer = None
         self.configure_implicit_dependencies = {get_configs_path(builddir)}
         self.variables: dict[str, Any] = {}
+        self.imports: None | dict[str, Any] = None
+        self.exports: dict[str, Any] = {}
         self.bobfile: None | Path = None
         self.always: PhonyTarget | None = None
 
@@ -68,7 +70,6 @@ class Context:
         exc: None | BaseException,
         tb: None | TracebackType,
     ) -> None:
-        failed = exc is not None
         from bob.api.rule import Rule
 
         Rule(
@@ -89,26 +90,19 @@ class Context:
             "\n".join(sorted(self.used_configs))
         )
 
-        try:
-            for key in self.configs:
-                assert key in self.used_configs, f'Invalid config "{key}"'
-        except AssertionError:
-            failed = True
-            raise
-        finally:
-            assert self.writer is not None
-            assert self.compdb_writer is not None
-            self.writer.close()
-            self.writer = None
-            self.compdb_writer.close()
-            self.compdb_writer = None
+        assert self.writer is not None
+        assert self.compdb_writer is not None
+        self.writer.close()
+        self.writer = None
+        self.compdb_writer.close()
+        self.compdb_writer = None
 
-            if failed:
-                get_build_ninja_path(self.builddir).unlink()
-                get_compdb_ninja_path(self.builddir).unlink()
+        if exc is not None:
+            get_build_ninja_path(self.builddir).unlink()
+            get_compdb_ninja_path(self.builddir).unlink()
 
-            assert Context._CURRENT is self
-            Context._CURRENT = None
+        assert Context._CURRENT is self
+        Context._CURRENT = None
 
     @staticmethod
     def current() -> "Context":
@@ -116,9 +110,23 @@ class Context:
         assert result is not None
         return result
 
-    def evaluate(self, bobfile: Path) -> None:
+    def evaluate(self, bobfile: Path, validate_configs: bool = True) -> None:
         if self.bobfile is None:
             self.bobfile = bobfile
 
+        original_src_subdir = self.current_src_subdir
+        self.current_src_subdir = bobfile.parent
+
+        if validate_configs:
+            self.used_configs = set()
+
         self.configure_implicit_dependencies.add(bobfile)
-        runpy.run_path(str(bobfile))
+
+        try:
+            runpy.run_path(str(bobfile))
+
+            if validate_configs:
+                for key in self.configs:
+                    assert key in self.used_configs, f'Invalid config "{key}"'
+        finally:
+            self.current_src_subdir = original_src_subdir

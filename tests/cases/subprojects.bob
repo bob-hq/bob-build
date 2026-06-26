@@ -1,0 +1,24 @@
+from bob.prelude import *
+
+r = Rule("cp $in $out")
+
+
+def weird():
+    include("utilities/included.bob")
+    r.build("use-include-global", inputs=[built])
+
+
+weird()
+
+# Sadly we can't put it in the locals yet, but that would probably be better.
+# assert "built" not in globals() and "built" not in locals()
+
+for i in range(2):
+    r.build(
+        f"subbob-{i}-built",
+        inputs=[
+            subbob(
+                "utilities/subbobbed.bob", r=r, configs={"subbob-config": f"config-{i}"}
+            )["built"]
+        ],
+    )

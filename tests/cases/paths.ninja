@@ -8,8 +8,8 @@ rule bob-1
 build build/somewhere/in-somewhere: bob-1
 build build/somewhere/deeper/in-deeper: bob-1
 build build/another/in-another: bob-1
-build build/resolve-src: bob-1 inside/deep/in-deep inside/deep/another-in-deep
-build build/resolve-src-outside: bob-1 outside
+build build/resolve-src: bob-1 $root/tests/cases/inside/deep/in-deep $root/tests/cases/inside/deep/another-in-deep
+build build/resolve-src-outside: bob-1 $root/tests/cases/outside
 rule configure-bob-2
   command = FORCE_COLOR=1 $bobbin configure --use-current-configs -f $bobfile
   description = CONFIGURE $out

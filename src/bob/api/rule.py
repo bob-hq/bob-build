@@ -106,14 +106,14 @@ class RuleInput:
             assert len(values) == 1
 
         for value in values:
-            if isinstance(value, FileTarget):
-                value = value.path
-
             if isinstance(value, str) and convert_strings_to_paths:
                 value = Path(value)
 
             if isinstance(value, Path):
                 value = context.current_src_subdir / value
+
+            if isinstance(value, FileTarget):
+                value = value.path
 
             if isinstance(value, PhonyTarget):
                 value = value.name
