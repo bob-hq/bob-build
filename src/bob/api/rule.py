@@ -86,6 +86,16 @@ class RuleInput:
     def resolve(
         *values: Type,
         convert_strings_to_paths: bool = True,
+        path_only: Literal[True] = True,
+        convert_to_string: Literal[True] = True,
+        single: Literal[True] = True,
+    ) -> str: ...
+
+    @overload
+    @staticmethod
+    def resolve(
+        *values: Type,
+        convert_strings_to_paths: bool = True,
         path_only: Literal[False] = False,
         convert_to_string: Literal[True] = True,
         single: Literal[False] = False,
@@ -436,7 +446,7 @@ def shell(command: str, text: bool = True, check: bool = True) -> str | bytes:
 
     generated = shell_output_rule(command).build(name)
 
-    context.configure_implicit_dependencies.add(generated.path)
+    context.configure_implicit_dependencies.add(generated)
 
     p = subprocess.run(
         command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE

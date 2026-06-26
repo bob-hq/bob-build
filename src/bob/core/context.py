@@ -2,7 +2,7 @@ import runpy
 import sys
 from pathlib import Path
 from types import TracebackType
-from typing import Any, ClassVar, Self, Type
+from typing import TYPE_CHECKING, Any, ClassVar, Self, Type
 
 from ninja import Writer
 
@@ -14,28 +14,34 @@ from bob.constants import (
     get_used_configs_path,
 )
 
+if TYPE_CHECKING:
+    from bob.api.scope import Scope
+
 
 class Context:
     _CURRENT: ClassVar[None | Self] = None
 
-    def __init__(self, builddir: Path, configs: dict[str, str]):
-        from bob.api.rule import PhonyTarget
+    def __init__(self, builddir: Path, bobfile: Path, configs: dict[str, str]):
+        from bob.api.rule import FileTarget, PhonyTarget, RuleInput
 
         self.builddir = builddir
+        self.bobfile = bobfile
         self.srcdir = Path(".")
         self.configs = configs
         self.used_configs: set[str] = set()
         self.writer: None | Writer = None
         self.compdb_writer: None | Writer = None
-        self.configure_implicit_dependencies = {get_configs_path(builddir)}
+        self.configure_implicit_dependencies: set[RuleInput.Type] = {
+            FileTarget(get_configs_path(builddir))
+        }
         self.variables: dict[str, Any] = {}
         self.imports: None | dict[str, Any] = None
         self.exports: dict[str, Any] = {}
-        self.bobfile: None | Path = None
         self.always: PhonyTarget | None = None
+        self.scopes: list[Scope] = []
 
         self.current_build_subdir = Path(".")
-        self.current_src_subdir = Path(".")
+        self.current_src_subdir = bobfile.parent
 
     def __enter__(self) -> Self:
         assert Context._CURRENT is None
@@ -70,7 +76,7 @@ class Context:
         exc: None | BaseException,
         tb: None | TracebackType,
     ) -> None:
-        from bob.api.rule import Rule
+        from bob.api.rule import Rule, RuleInput
 
         Rule(
             "FORCE_COLOR=1 $bobbin configure --use-current-configs -f $bobfile",
@@ -79,7 +85,12 @@ class Context:
             pool="console",
         ).build(
             str(get_build_ninja_path(self.builddir).relative_to(self.builddir)),
-            implicit=list(sorted(str(d) for d in self.configure_implicit_dependencies)),
+            implicit=sorted(
+                self.configure_implicit_dependencies,
+                key=lambda i: RuleInput.resolve(
+                    i, path_only=True, convert_to_string=True
+                ),
+            ),
             variables={
                 "bobbin": f"{sys.executable} -m bob",
                 "bobfile": str(self.bobfile),
@@ -110,23 +121,18 @@ class Context:
         assert result is not None
         return result
 
-    def evaluate(self, bobfile: Path, validate_configs: bool = True) -> None:
-        if self.bobfile is None:
-            self.bobfile = bobfile
-
-        original_src_subdir = self.current_src_subdir
-        self.current_src_subdir = bobfile.parent
-
+    def evaluate(
+        self,
+        bobfile: Path,
+        validate_configs: bool = True,
+    ) -> None:
         if validate_configs:
             self.used_configs = set()
 
         self.configure_implicit_dependencies.add(bobfile)
 
-        try:
-            runpy.run_path(str(bobfile))
+        runpy.run_path(str(bobfile))
 
-            if validate_configs:
-                for key in self.configs:
-                    assert key in self.used_configs, f'Invalid config "{key}"'
-        finally:
-            self.current_src_subdir = original_src_subdir
+        if validate_configs:
+            for key in self.configs:
+                assert key in self.used_configs, f'Invalid config "{key}"'

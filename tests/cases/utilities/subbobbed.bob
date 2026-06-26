@@ -7,3 +7,9 @@ export(
         "dummy", inputs=["subbob-input", config("subbob-config", required=True)]
     )
 )
+
+src_in("dangeling")
+src_in("inside")
+with src_in("not-dangeling"):
+    pass
+build_in("dangeling")

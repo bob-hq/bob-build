@@ -60,7 +60,10 @@ def subbob(
             "configs": configs,
         },
     ):
+        scopes_before = len(context.scopes)
         context.evaluate(bobfile)
+        for scope in reversed(context.scopes[scopes_before:]):
+            scope.close()
         return context.exports
 
 

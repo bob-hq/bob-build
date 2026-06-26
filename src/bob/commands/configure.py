@@ -35,5 +35,5 @@ def configure(
     if lazy and get_build_ninja_path(builddir).exists():
         return
 
-    with Context(builddir, resolved_configs) as context:
+    with Context(builddir, bobfile, resolved_configs) as context:
         context.evaluate(bobfile)

@@ -2,13 +2,26 @@ import abc
 from types import TracebackType
 from typing import Any, Self, Type
 
+from bob.core.context import Context
+
 
 class Scope(abc.ABC):
+    def __init__(self) -> None:
+        context = Context.current()
+        context.scopes.append(self)
+
     @abc.abstractmethod
-    def close(self) -> None: ...
+    def _close(self) -> None: ...
 
     def __enter__(self) -> "Scope":
         return self
+
+    def close(self) -> None:
+        context = Context.current()
+        if self not in context.scopes:
+            return
+        context.scopes.remove(self)
+        self._close()
 
     def __exit__(
         self,
@@ -24,11 +37,12 @@ class Scope(abc.ABC):
 
 class ScopeList(Scope):
     def __init__(self, scopes: list[Scope]) -> None:
+        super().__init__()
         self.scopes = scopes
 
-    def close(self) -> None:
+    def _close(self) -> None:
         for scope in self.scopes:
-            scope.close()
+            scope._close()
 
     def __or__(self, other: Scope | Self) -> Scope:
         if isinstance(other, ScopeList):
@@ -38,6 +52,7 @@ class ScopeList(Scope):
 
 class DictionaryScope(Scope):
     def __init__(self, variables: dict[str, Any], changes: dict[str, Any]) -> None:
+        super().__init__()
         self.variables = variables
         self.changes = changes
 
@@ -50,9 +65,11 @@ class DictionaryScope(Scope):
 
         self.original = original
 
-    def close(self) -> None:
+    def _close(self) -> None:
         for key in self.changes:
-            assert self.variables[key] == self.changes[key]
+            assert self.variables[key] == self.changes[key], (
+                f"Expected {key} to be {self.changes[key]} when closing the scope but got: {self.variables[key]}"
+            )
 
             if key in self.original:
                 self.variables[key] = self.original[key]
@@ -66,6 +83,7 @@ class DictionaryScope(Scope):
 
 class AttributeScope(Scope):
     def __init__(self, object: Any, changes: dict[str, Any]) -> None:
+        super().__init__()
         self.object = object
         self.changes = changes
 
@@ -78,10 +96,12 @@ class AttributeScope(Scope):
 
         self.original = original
 
-    def close(self) -> None:
+    def _close(self) -> None:
         for key in self.changes:
             # The `object` mustn't have changed underneath our feet, we have no sensible action in that case.
-            assert getattr(self.object, key) == self.changes[key]
+            assert getattr(self.object, key) == self.changes[key], (
+                f"Expected {key} to be {self.changes[key]} when closing the scope but got: {getattr(self.object, key)}"
+            )
 
             if key in self.original:
                 setattr(self.object, key, self.original[key])
