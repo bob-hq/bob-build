@@ -21,13 +21,20 @@ if TYPE_CHECKING:
 class Context:
     _CURRENT: ClassVar[None | Self] = None
 
-    def __init__(self, builddir: Path, bobfile: Path, configs: dict[str, str]):
+    def __init__(
+        self,
+        builddir: Path,
+        bobfile: Path,
+        configs: dict[str, str],
+        allow_build_outside_builddir: bool,
+    ):
         from bob.api.rule import FileTarget, PhonyTarget, RuleInput
 
         self.builddir = builddir
         self.bobfile = bobfile
-        self.srcdir = Path(".")
+        self.allow_build_outside_builddir = allow_build_outside_builddir
         self.configs = configs
+        self.srcdir = Path(".")
         self.used_configs: set[str] = set()
         self.writer: None | Writer = None
         self.compdb_writer: None | Writer = None

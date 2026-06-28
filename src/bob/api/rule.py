@@ -337,6 +337,12 @@ class Rule[OutputType]:
                 context.builddir / context.current_build_subdir / output
                 for output in outputs
             ]
+            if not context.allow_build_outside_builddir:
+                for output in resolved_outputs:
+                    if context.builddir.resolve() not in output.resolve().parents:
+                        raise ValueError(
+                            f"Refusing to build {output} outside of the build directory"
+                        )
 
             resolved_variables = {
                 key: shlex.join(

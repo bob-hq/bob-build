@@ -12,6 +12,7 @@ def configure(
     configs: Sequence[str] = (),
     use_current_configs: bool = False,
     lazy: bool = False,
+    allow_build_outside_builddir: bool = False,
 ) -> None:
     configs_path = get_configs_path(builddir)
 
@@ -35,5 +36,7 @@ def configure(
     if lazy and get_build_ninja_path(builddir).exists():
         return
 
-    with Context(builddir, bobfile, resolved_configs) as context:
+    with Context(
+        builddir, bobfile, resolved_configs, allow_build_outside_builddir
+    ) as context:
         context.evaluate(bobfile)

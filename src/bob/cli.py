@@ -97,11 +97,17 @@ def cli() -> None:
     is_flag=True,
     help="Use the current configs saved from previously configuring.",
 )
+@click.option(
+    "--allow-build-outside-builddir",
+    is_flag=True,
+    help="Allow building targets outside of the build directory.",
+)
 def configure(
     builddir: Path,
     bobfile: Path,
     configs: Sequence[str],
     use_current_configs: bool,
+    allow_build_outside_builddir: bool,
 ) -> None:
     """Generate the Ninja file to build the project."""
 
@@ -112,6 +118,7 @@ def configure(
         bobfile=bobfile,
         configs=configs,
         use_current_configs=use_current_configs,
+        allow_build_outside_builddir=allow_build_outside_builddir,
     )
 
 
@@ -170,6 +177,11 @@ def configure(
     is_flag=True,
     help="Don't provide a jobserver.",
 )
+@click.option(
+    "--allow-build-outside-builddir",
+    is_flag=True,
+    help="Allow building targets outside of the build directory.",
+)
 @click.argument("targets", shell_complete=complete_targets, nargs=-1)
 def build(
     builddir: Path,
@@ -182,6 +194,7 @@ def build(
     targets: Sequence[str],
     jobs: None | int,
     no_jobserver: bool,
+    allow_build_outside_builddir: bool,
 ) -> None:
     """Build the given Bob project."""
 
@@ -198,6 +211,7 @@ def build(
         targets=targets,
         jobs=jobs,
         no_jobserver=no_jobserver,
+        allow_build_outside_builddir=allow_build_outside_builddir,
     )
 
 
