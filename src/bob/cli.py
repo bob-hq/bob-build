@@ -11,6 +11,7 @@ from bob.constants import (
     get_build_ninja_path,
     get_used_configs_path,
 )
+from bob.utilities.click import SeparateUnprocessedArgumentsCommand
 
 
 def complete_targets(
@@ -122,7 +123,7 @@ def configure(
     )
 
 
-@cli.command()
+@cli.command(cls=SeparateUnprocessedArgumentsCommand)
 @click.option(
     "-B",
     "--builddir",
@@ -178,12 +179,21 @@ def configure(
     help="Don't provide a jobserver.",
 )
 @click.option(
+    "--no-pretty",
+    is_flag=True,
+    envvar="BOB_NO_PRETTY",
+    help="Print the raw Ninja output rather than pretty printing the build process.",
+    show_envvar=True,
+)
+@click.option(
     "--allow-build-outside-builddir",
     is_flag=True,
     help="Allow building targets outside of the build directory.",
 )
 @click.argument("targets", shell_complete=complete_targets, nargs=-1)
+@click.pass_context
 def build(
+    ctx: click.Context,
     builddir: Path,
     bobfile: Path,
     do_clean: bool,
@@ -194,6 +204,7 @@ def build(
     targets: Sequence[str],
     jobs: None | int,
     no_jobserver: bool,
+    no_pretty: bool,
     allow_build_outside_builddir: bool,
 ) -> None:
     """Build the given Bob project."""
@@ -211,7 +222,9 @@ def build(
         targets=targets,
         jobs=jobs,
         no_jobserver=no_jobserver,
+        no_pretty=no_pretty,
         allow_build_outside_builddir=allow_build_outside_builddir,
+        extra_ninja_arguments=ctx.meta["unprocessed"],
     )
 
 
