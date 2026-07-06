@@ -2,6 +2,8 @@ import subprocess
 from pathlib import Path
 from typing import Sequence
 
+from ninja import BIN_DIR as NINJA_BIN_DIR
+
 from bob.commands.configure import configure
 from bob.constants import COMPDB_PATH, get_compdb_ninja_path
 
@@ -19,7 +21,7 @@ def compdb(
     configure(builddir, bobfile, configs, use_current_configs, lazy=True)
 
     p = subprocess.Popen(
-        f"ninja -f {get_compdb_ninja_path(builddir)} -t compdb > {build_compdb_path}",
+        f"{Path(NINJA_BIN_DIR) / 'ninja'} -f {get_compdb_ninja_path(builddir)} -t compdb > {build_compdb_path}",
         shell=True,
     )
 
