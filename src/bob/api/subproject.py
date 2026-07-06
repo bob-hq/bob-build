@@ -7,10 +7,20 @@ from bob.api.scope import AttributeScope
 from bob.core.context import Context
 
 
+def _get_bobfile(context: Context, path: str | Path) -> Path:
+    if (context.current_src_subdir / path).is_dir():
+        bobfile = context.current_src_subdir / path / "Bobfile"
+    else:
+        bobfile = context.current_src_subdir / path
+
+    assert bobfile.is_file(), f"Failed to find Bobfile at {path}: searched at {bobfile}"
+
+    return bobfile
+
+
 def include(path: str | Path) -> None:
     context = Context.current()
-    bobfile = context.current_src_subdir / path
-    assert bobfile.is_file(), f"Can't include {path}: not found at {bobfile}"
+    bobfile = _get_bobfile(context, path)
     context.configure_implicit_dependencies.add(bobfile)
 
     current = inspect.currentframe()
@@ -33,12 +43,7 @@ def subbob(
 
     context = Context.current()
 
-    if (context.current_src_subdir / path).is_dir():
-        bobfile = context.current_src_subdir / path / "Bobfile"
-    else:
-        bobfile = context.current_src_subdir / path
-
-    assert bobfile.is_file(), f"Can't subbob {path}: not found at {bobfile}"
+    bobfile = _get_bobfile(context, path)
 
     subbob_index = context.variables.get("subbob_index", 1)
     context.variables["subbob_index"] = subbob_index + 1
