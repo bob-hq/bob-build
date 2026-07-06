@@ -3,8 +3,9 @@
     <br />
     Bob the Builder
     <br />
-    <img src="https://img.shields.io/badge/license-MIT-blue.svg">
-    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg">
+    <img alt="License MIT" src="https://img.shields.io/badge/license-MIT-blue.svg">
+    <img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg">
+    <img alt="PyPI Version" src="https://img.shields.io/pypi/v/bob-build">
 </h1>
 
 <h4 align="center">
