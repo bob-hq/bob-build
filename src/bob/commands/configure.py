@@ -39,4 +39,4 @@ def configure(
     with Context(
         builddir, bobfile, resolved_configs, allow_build_outside_builddir
     ) as context:
-        context.evaluate(bobfile)
+        context.evaluate(bobfile, restore_configs=False)

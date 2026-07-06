@@ -133,7 +133,10 @@ class Context:
         self,
         bobfile: Path,
         validate_configs: bool = True,
+        restore_configs: bool = True,
     ) -> None:
+        original_used_configs = self.used_configs
+
         if validate_configs:
             self.used_configs = set()
 
@@ -148,3 +151,5 @@ class Context:
         if validate_configs:
             for key in self.configs:
                 assert key in self.used_configs, f'Invalid config "{key}"'
+            if restore_configs:
+                self.used_configs = original_used_configs
