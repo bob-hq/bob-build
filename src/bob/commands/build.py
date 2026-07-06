@@ -5,6 +5,8 @@ from contextlib import AbstractContextManager, nullcontext
 from pathlib import Path
 from typing import Sequence
 
+from ninja import BIN_DIR as NINJA_BIN_DIR
+
 from bob.commands.clean import clean
 from bob.commands.compdb import compdb
 from bob.commands.configure import configure
@@ -20,7 +22,7 @@ def run_ninja(
     extra_ninja_arguments: None | list[str] = None,
 ) -> None:
     arguments = [
-        "ninja",
+        str(Path(NINJA_BIN_DIR) / "ninja"),
         "-f",
         str(get_build_ninja_path(builddir)),
     ]

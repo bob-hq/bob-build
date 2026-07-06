@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Sequence
 
 import rich_click as click
+from ninja import BIN_DIR as NINJA_BIN_DIR
 
 from bob.constants import (
     BOB_BUILDDIR_SUBDIRECTORY,
@@ -21,7 +22,7 @@ def complete_targets(
 
     p = subprocess.run(
         [
-            "ninja",
+            str(Path(NINJA_BIN_DIR) / "ninja"),
             "-f",
             get_build_ninja_path(builddir),
             "-t",
