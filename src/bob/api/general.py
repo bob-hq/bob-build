@@ -35,7 +35,7 @@ def config(name: str, required: bool = False, default: None | str = None) -> Non
 
 def bob_required_version(version: str, bob_version: None | str = None) -> None:
     if bob_version is None:
-        bob_version = importlib_version("bob")
+        bob_version = importlib_version("bob-build")
 
     if "." not in version:
         raise ValueError(
