@@ -1,0 +1,12 @@
+import shlex
+
+import bobstd.c as c
+
+from bob.prelude import *
+
+c.toolchain(ccbin="gcc", arbin="ar")
+
+if (cflags := config("cflags")) is not None:
+    c.cflags.add(shlex.split(cflags))
+
+c.binary("basic", sources=["basic.c"])

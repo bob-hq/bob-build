@@ -28,9 +28,26 @@
 uv tool install git+https://github.com/bob-hq/bob --with git+https://github.com/bob-hq/bob-std 
 ```
 
+See the [tour](./tour)!
+
 ## CLI
 
+You can try these out in the tour as well.
 
+```bash
+# Build the project in the current directory (you should have a Bobfile).
+bob build
+# Clean the outputs of Bob.
+bob clean
+# Build with a specific config.
+bob build -c DEBUG=n
+# Build with a specific config in a separate build directory, so both consecutive builds are blazingly fast.
+bob build -c DEBUG=y --builddir build-debug
+# More options, including options passed to Ninja (after --).
+bob build --clean -j 4 -- -v
+# Create a compile_commands.json.
+bob compdb -c DEBUG=n
+```
 
 ## Goals
 

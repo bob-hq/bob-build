@@ -1,0 +1,8 @@
+{
+    "fun": {
+        "cflags": ["-DMESSAGE=\"FUN\""]
+    },
+    "amazing": {
+        "cflags": ["-DMESSAGE=\"AMAZING\""]
+    }
+}

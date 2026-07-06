@@ -1,0 +1,75 @@
+import json
+import shlex
+from pathlib import Path
+
+from bob.prelude import *
+
+# You should always verify the current version of Bob is compatible with your Bobfile.
+bob_required_version("0.1")
+
+
+# Associate some command with $variables with a rule.
+r = Rule("cat $in > $out; echo $something >> $out", variables={"something": []})
+
+# Build a target using a specific rule.
+# `in.txt` should be in the srcdir, which is initially the directory containing the Bobfile.
+# `fun.txt` will be created inside the builddir.
+fun: FileTarget = r.build("fun.txt", inputs=["in.txt"], variables={"something": "hi"})
+
+# You can scope variable values with `set` or add to them with `add`.
+# Variables are automatically shell-escaped.
+with r["something"].set(["sheesh"]), Variable("something", r).add(["so $cool"]):
+    # You can pass targets, strings, and paths as a type of `RuleInput`.
+    # Strings and paths are resolved relative to the srcdir.
+    another = r.build(
+        "another.txt",
+        inputs=[fun, "in.txt", Path("in.txt")],
+    )
+
+# You can use shell_output_rule to always run a command, store its output in a file, and restat it
+# so that dependent targets are rebuilt if the command's output was actually changed.
+shell_output_rule("cat magic").build("magic")
+
+# You can group multiple targets in a phony target.
+phony("fun-and-another", [fun, another])
+
+# Your Bobfiles aren't evaluated in every build, so anything you do and isn't tracked might not happen in some builds.
+# You can use `shell` to run a command and re-evaluate your Bobfiles (i.e. reconfigure) whenever its output changes.
+# This also checks the return code, unless you pass check=False, and decodes, unless you pass text=False.
+shell(
+    "find src -name '*.c' -exec clang-format --dry-run --Werror {} +",
+)
+
+
+# You can use configuration variables passed to the CLI.
+# Note that variables never perform "late binding" - this doesn't affect earlier targets!
+if config("DEBUG") == "y":
+    r["something"].add(["debug"])
+
+
+with src_in("src"), build_in(Path("srcbuild")):
+    recursed = r.build("recursed.txt", inputs=[Path("basic.c")])
+    assert recursed.path == builddir() / "recursed.txt", (
+        f"{recursed.path} {builddir() / 'recursed.txt'}"
+    )
+
+assert recursed.path == builddir() / "srcbuild" / "recursed.txt"
+
+# You can glob for files, such that Bob reconfigures when the glob might change.
+assert glob("**/*.txt", Path("src") / "demo") == [
+    Path("src/demo/inner/inner.txt"),
+    Path("src/demo/outer.txt"),
+]
+
+# You can also read files during configuration, such that Bob reconfigures when the files are modified.
+targets = json.loads(read("targets.json"))
+
+# You can build sub-Bob projects aswell!
+for name, info in targets.items():
+    subbob("src", configs={"cflags": shlex.join(info["cflags"])}, build_recurse=name)
+
+# Or include them as if they were pasted in the current Bobfile.
+# Note that every included or subbob'd file uses the directory containing it as its srcdir!
+include(
+    Path("src") / "make",
+)

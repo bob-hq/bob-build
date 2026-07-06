@@ -1,0 +1,13 @@
+from bob.prelude import *
+
+Rule("make $arguments", always=True, restat=True).build(
+    "out.txt",
+    variables={
+        "arguments": [
+            "-C",
+            srcdir(),
+            f"SRC={srcdir().resolve()}",
+            f"BUILD={builddir().resolve()}",
+        ]
+    },
+)
