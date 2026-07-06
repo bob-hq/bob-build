@@ -186,7 +186,7 @@ class Rule[OutputType]:
         compile_command: None | str = None,
         single_input: bool = False,
         single_output: Literal[True] = True,
-        variables: None | dict[str, RuleInput.Type] = None,
+        variables: None | dict[str, RuleInput.Multiple] = None,
     ) -> "Rule[FileTarget]": ...
 
     @overload
@@ -203,7 +203,7 @@ class Rule[OutputType]:
         compile_command: None | str = None,
         single_input: bool = False,
         single_output: Literal[False] = False,
-        variables: None | dict[str, RuleInput.Type] = None,
+        variables: None | dict[str, RuleInput.Multiple] = None,
     ) -> "Rule[list[FileTarget]]": ...
 
     def __new__(
@@ -228,7 +228,7 @@ class Rule[OutputType]:
         compile_command: None | str = None,
         single_input: bool = False,
         single_output: bool = True,
-        variables: None | dict[str, RuleInput.Type] = None,
+        variables: None | dict[str, RuleInput.Multiple] = None,
     ):
         context = Context.current()
 
@@ -278,11 +278,7 @@ class Rule[OutputType]:
         self.always = always
 
         for key, value in variables.items():
-            self[key].set(
-                RuleInput.resolve(
-                    value, convert_strings_to_paths=False, convert_to_string=True
-                )
-            )
+            self[key].set(value)
 
         assert context.writer is not None
         assert context.compdb_writer is not None
