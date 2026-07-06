@@ -36,6 +36,7 @@ class RuleInput:
     @staticmethod
     def resolve(
         *values: Type,
+        srcdir_relative_paths: bool = True,
         convert_strings_to_paths: bool = True,
         path_only: Literal[False] = False,
         convert_to_string: Literal[False] = False,
@@ -46,6 +47,7 @@ class RuleInput:
     @staticmethod
     def resolve(
         *values: Type,
+        srcdir_relative_paths: bool = True,
         convert_strings_to_paths: bool = True,
         path_only: Literal[False] = False,
         convert_to_string: Literal[False] = False,
@@ -56,6 +58,7 @@ class RuleInput:
     @staticmethod
     def resolve(
         *values: Type,
+        srcdir_relative_paths: bool = True,
         convert_strings_to_paths: bool = True,
         path_only: Literal[True] = True,
         convert_to_string: Literal[False] = False,
@@ -66,6 +69,7 @@ class RuleInput:
     @staticmethod
     def resolve(
         *values: Type,
+        srcdir_relative_paths: bool = True,
         convert_strings_to_paths: bool = True,
         path_only: Literal[True] = True,
         convert_to_string: Literal[False] = False,
@@ -76,6 +80,7 @@ class RuleInput:
     @staticmethod
     def resolve(
         *values: Type,
+        srcdir_relative_paths: bool = True,
         convert_strings_to_paths: bool = True,
         path_only: Literal[False] = False,
         convert_to_string: Literal[True] = True,
@@ -86,6 +91,7 @@ class RuleInput:
     @staticmethod
     def resolve(
         *values: Type,
+        srcdir_relative_paths: bool = True,
         convert_strings_to_paths: bool = True,
         path_only: Literal[True] = True,
         convert_to_string: Literal[True] = True,
@@ -96,6 +102,7 @@ class RuleInput:
     @staticmethod
     def resolve(
         *values: Type,
+        srcdir_relative_paths: bool = True,
         convert_strings_to_paths: bool = True,
         path_only: Literal[False] = False,
         convert_to_string: Literal[True] = True,
@@ -105,6 +112,7 @@ class RuleInput:
     @staticmethod
     def resolve(
         *values: Type,
+        srcdir_relative_paths: bool = True,
         convert_strings_to_paths: bool = True,
         path_only: bool = False,
         convert_to_string: bool = False,
@@ -120,7 +128,7 @@ class RuleInput:
             if isinstance(value, str) and convert_strings_to_paths:
                 value = Path(value)
 
-            if isinstance(value, Path):
+            if isinstance(value, Path) and srcdir_relative_paths:
                 value = context.current_src_subdir / value
 
             if isinstance(value, FileTarget):
@@ -344,7 +352,10 @@ class Rule[OutputType]:
                 key: shlex.join(
                     ninja_escape(
                         RuleInput.resolve(
-                            v, convert_strings_to_paths=False, convert_to_string=True
+                            v,
+                            srcdir_relative_paths=False,
+                            convert_strings_to_paths=False,
+                            convert_to_string=True,
                         )
                     )
                     for v in value
@@ -355,7 +366,10 @@ class Rule[OutputType]:
                 and not isinstance(value, PhonyTarget)
                 else ninja_escape(
                     RuleInput.resolve(
-                        value, convert_strings_to_paths=False, convert_to_string=True
+                        value,
+                        srcdir_relative_paths=False,
+                        convert_strings_to_paths=False,
+                        convert_to_string=True,
                     )
                 )
                 for key, value in self.variables.items()
