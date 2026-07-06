@@ -292,7 +292,6 @@ def compdb(
     dont_symlink: bool,
     configs: Sequence[str],
     use_current_configs: bool,
-    wait: bool,
 ) -> None:
     """Create a compilation database for the project."""
 
@@ -304,7 +303,6 @@ def compdb(
         dont_symlink=dont_symlink,
         configs=configs,
         use_current_configs=use_current_configs,
-        wait=wait,
     )
 
 
