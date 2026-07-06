@@ -22,7 +22,7 @@ def src_in(path: str | Path) -> Scope:
 
 def builddir() -> Path:
     context = Context.current()
-    return context.current_build_subdir
+    return context.builddir / context.current_build_subdir
 
 
 def srcdir() -> Path:

@@ -5,15 +5,15 @@ from bob.prelude import *
 r = Rule("echo hi > $out")
 
 with build_in("somewhere"):
-    assert builddir() == Path("somewhere")
+    assert builddir() == Path("build") / "somewhere"
     r.build("in-somewhere")
 
     with build_in("deeper"):
-        assert builddir() == Path("somewhere") / "deeper"
+        assert builddir() == Path("build") / "somewhere" / "deeper"
         r.build("in-deeper")
 
 with build_in(Path("another")):
-    assert builddir() == Path("another")
+    assert builddir() == Path("build") / "another"
     r.build("in-another")
 
 with src_in(Path("inside")), src_in("deep"):
