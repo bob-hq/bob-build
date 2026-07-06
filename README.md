@@ -25,7 +25,7 @@
 ## Getting Started
 
 ```bash
-uv tool install git+https://github.com/bob-hq/bob --with git+https://github.com/bob-hq/bob-std 
+uv tool install --upgrade bob-build --with bobstd
 ```
 
 See the [tour](./tour)!
