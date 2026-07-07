@@ -51,9 +51,7 @@ if config("DEBUG") == "y":
 
 with src_in("src"), build_in(Path("srcbuild")):
     recursed = r.build("recursed.txt", inputs=[Path("basic.c")])
-    assert recursed.path == builddir() / "recursed.txt", (
-        f"{recursed.path} {builddir() / 'recursed.txt'}"
-    )
+    assert recursed.path == builddir() / "recursed.txt"
 
 assert recursed.path == builddir() / "srcbuild" / "recursed.txt"
 
@@ -68,7 +66,7 @@ targets = json.loads(read("targets.json"))
 
 # You can build sub-Bob projects aswell!
 for name, info in targets.items():
-    subbob("src", configs={"cflags": shlex.join(info["cflags"])}, build_recurse=name)
+    subbob("src", configs={"cflags": shlex.join(info["cflags"])})
 
 # Or include them as if they were pasted in the current Bobfile.
 # Note that every included or subbob'd file uses the directory containing it as its srcdir!
