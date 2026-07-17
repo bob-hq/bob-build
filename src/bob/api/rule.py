@@ -400,6 +400,21 @@ class Rule[OutputType]:
                 if implicit is not None
                 else None
             )
+            resolved_order_only = (
+                RuleInput.resolve(
+                    *order_only,
+                    convert_strings_to_paths=True,
+                    convert_to_string=True,
+                    single=False,
+                )
+                if order_only is not None
+                else None
+            )
+            resolved_implicit_outputs = (
+                list(map(str, implicit_outputs))
+                if implicit_outputs is not None
+                else None
+            )
 
             assert context.writer is not None
             assert context.compdb_writer is not None
@@ -408,18 +423,9 @@ class Rule[OutputType]:
                 rule=self.name,
                 inputs=resolved_inputs,
                 implicit=resolved_implicit,
-                order_only=RuleInput.resolve(
-                    *order_only,
-                    convert_strings_to_paths=True,
-                    convert_to_string=True,
-                    single=False,
-                )
-                if order_only is not None
-                else None,
+                order_only=resolved_order_only,
                 variables=resolved_variables,
-                implicit_outputs=list(map(str, implicit_outputs))
-                if implicit_outputs is not None
-                else None,
+                implicit_outputs=resolved_implicit_outputs,
                 pool=pool,
                 dyndep=dyndep,
             )
@@ -429,6 +435,12 @@ class Rule[OutputType]:
                     outputs=[str(output) for output in resolved_outputs],
                     rule=self.name,
                     inputs=resolved_inputs,
+                    implicit=resolved_implicit,
+                    order_only=resolved_order_only,
+                    variables=resolved_variables,
+                    implicit_outputs=resolved_implicit_outputs,
+                    pool=pool,
+                    dyndep=dyndep,
                 )
 
             if self.single_output:
