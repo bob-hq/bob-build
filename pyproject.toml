@@ -36,9 +36,5 @@ ignore = ["F403", "F405"]
 [tool.mypy]
 strict = true
 
-# TODO: https://github.com/pallets/click/issues/3502
-[tool.uv]
-override-dependencies = ["click==8.3.0"]
-
 [tool.uv.build-backend]
 module-name = "bob"
