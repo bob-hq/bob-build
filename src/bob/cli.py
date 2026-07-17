@@ -287,12 +287,14 @@ def clean(builddir: Path, force: bool) -> None:
     is_flag=True,
     help="Use the current configs saved from previously configuring.",
 )
+@click.argument("targets", shell_complete=complete_targets, nargs=-1)
 def compdb(
     builddir: Path,
     bobfile: Path,
     dont_symlink: bool,
     configs: Sequence[str],
     use_current_configs: bool,
+    targets: Sequence[str],
 ) -> None:
     """Create a compilation database for the project."""
 
@@ -304,6 +306,7 @@ def compdb(
         dont_symlink=dont_symlink,
         configs=configs,
         use_current_configs=use_current_configs,
+        targets=targets,
     )
 
 

@@ -1,3 +1,4 @@
+import shlex
 import subprocess
 from pathlib import Path
 from typing import Sequence
@@ -15,13 +16,17 @@ def compdb(
     configs: Sequence[str] = (),
     use_current_configs: bool = False,
     wait: bool = True,
+    targets: Sequence[str] = (),
 ) -> subprocess.Popen[bytes]:
     build_compdb_path = builddir / COMPDB_PATH
 
     configure(builddir, bobfile, configs, use_current_configs, lazy=True)
 
+    ninja_args = (
+        ["-t", "compdb"] if len(targets) == 0 else ["-t", "compdb-targets", *targets]
+    )
     p = subprocess.Popen(
-        f"{Path(NINJA_BIN_DIR) / 'ninja'} -f {get_compdb_ninja_path(builddir)} -t compdb > {build_compdb_path}",
+        f"{Path(NINJA_BIN_DIR) / 'ninja'} -f {get_compdb_ninja_path(builddir)} {shlex.join(ninja_args)} > {build_compdb_path}",
         shell=True,
     )
 

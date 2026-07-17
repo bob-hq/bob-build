@@ -87,6 +87,7 @@ def build(
                 dont_symlink=not symlink_compdb,
                 use_current_configs=True,
                 wait=False,
+                targets=targets,
             )
 
         run_ninja(builddir, targets, no_pretty, extra_ninja_arguments)
