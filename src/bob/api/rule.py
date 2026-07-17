@@ -415,11 +415,12 @@ class Rule[OutputType]:
                 if implicit_outputs is not None
                 else None
             )
+            str_resolved_outputs = [str(output) for output in resolved_outputs]
 
             assert context.writer is not None
             assert context.compdb_writer is not None
             context.writer.build(
-                outputs=[str(output) for output in resolved_outputs],
+                outputs=str_resolved_outputs,
                 rule=self.name,
                 inputs=resolved_inputs,
                 implicit=resolved_implicit,
@@ -432,7 +433,7 @@ class Rule[OutputType]:
 
             if self.has_compile_command:
                 context.compdb_writer.build(
-                    outputs=[str(output) for output in resolved_outputs],
+                    outputs=str_resolved_outputs,
                     rule=self.name,
                     inputs=resolved_inputs,
                     implicit=resolved_implicit,
@@ -441,6 +442,15 @@ class Rule[OutputType]:
                     implicit_outputs=resolved_implicit_outputs,
                     pool=pool,
                     dyndep=dyndep,
+                )
+            else:
+                context.compdb_writer.build(
+                    outputs=str_resolved_outputs,
+                    rule="phony",
+                    inputs=resolved_inputs,
+                    implicit=resolved_implicit,
+                    order_only=resolved_order_only,
+                    implicit_outputs=resolved_implicit_outputs,
                 )
 
             if self.single_output:
@@ -452,19 +462,26 @@ class Rule[OutputType]:
 def phony(name: str, inputs: None | list[RuleInput.Type] = None) -> PhonyTarget:
     context = Context.current()
 
-    assert context.writer is not None
-    context.writer.build(
-        [name],
-        rule="phony",
-        inputs=RuleInput.resolve(
+    resolved_inputs = (
+        RuleInput.resolve(
             *inputs,
             convert_strings_to_paths=True,
             convert_to_string=True,
             single=False,
         )
         if inputs is not None
-        else None,
+        else None
     )
+
+    assert context.writer is not None
+    context.writer.build(
+        [name],
+        rule="phony",
+        inputs=resolved_inputs,
+    )
+
+    assert context.compdb_writer is not None
+    context.compdb_writer.build([name], rule="phony", inputs=resolved_inputs)
 
     return PhonyTarget(name)
 
