@@ -237,7 +237,12 @@ class Rule[OutputType]:
         single_input: bool = False,
         single_output: bool = True,
         variables: None | dict[str, RuleInput.Multiple] = None,
+        implicit: None | list[RuleInput.Type] = None,
+        order_only: None | list[RuleInput.Type] = None,
+        implicit_outputs: None | list[str | Path] = None,
     ):
+        from bob.api.scoped_value import ScopedValue
+
         context = Context.current()
 
         rule_index = context.variables.get("rule_index", 1)
@@ -284,6 +289,9 @@ class Rule[OutputType]:
         self.single_input = single_input
         self.single_output = single_output
         self.always = always
+        self.implicit = ScopedValue(implicit or [])
+        self.order_only = ScopedValue(order_only or [])
+        self.implicit_outputs = ScopedValue(implicit_outputs or [])
 
         for key, value in variables.items():
             self[key].set(value)
@@ -337,6 +345,18 @@ class Rule[OutputType]:
 
             context = Context.current()
 
+            substitution_variables: dict[str, str] = {}
+            if self.single_input:
+                assert inputs is not None
+                substitution_variables["in"] = RuleInput.resolve(
+                    inputs[0], convert_to_string=True
+                )
+            if self.single_output:
+                assert outputs is not None
+                substitution_variables["out"] = str(
+                    context.builddir / context.current_build_subdir / str(outputs[0])
+                )
+
             resolved_outputs = [
                 context.builddir / context.current_build_subdir / output
                 for output in outputs
@@ -344,7 +364,18 @@ class Rule[OutputType]:
             resolved_implicit_outputs = [
                 context.builddir / context.current_build_subdir / implicit_output
                 for implicit_output in (implicit_outputs or [])
+            ] + [
+                Path(Template(p).safe_substitute(substitution_variables))
+                if isinstance(p, str)
+                else context.builddir / context.current_build_subdir / p
+                for p in RuleInput.resolve(
+                    *self.implicit_outputs.get(required=True),
+                    convert_strings_to_paths=False,
+                    single=False,
+                    srcdir_relative_paths=False,
+                )
             ]
+
             if not context.allow_build_outside_builddir:
                 for output in resolved_outputs + resolved_implicit_outputs:
                     if context.builddir.resolve() not in output.resolve().parents:
@@ -394,26 +425,36 @@ class Rule[OutputType]:
                 if inputs is not None
                 else None
             )
-            resolved_implicit = (
-                RuleInput.resolve(
-                    *implicit,
-                    convert_strings_to_paths=True,
-                    convert_to_string=True,
+            resolved_implicit = RuleInput.resolve(
+                *(implicit or []),
+                convert_strings_to_paths=True,
+                convert_to_string=True,
+                single=False,
+            ) + [
+                Template(p).safe_substitute(substitution_variables)
+                if isinstance(p, str)
+                else str(p)
+                for p in RuleInput.resolve(
+                    *self.implicit.get(required=True),
                     single=False,
+                    convert_strings_to_paths=False,
                 )
-                if implicit is not None
-                else None
-            )
-            resolved_order_only = (
-                RuleInput.resolve(
-                    *order_only,
-                    convert_strings_to_paths=True,
-                    convert_to_string=True,
+            ]
+            resolved_order_only = RuleInput.resolve(
+                *(order_only or []),
+                convert_strings_to_paths=True,
+                convert_to_string=True,
+                single=False,
+            ) + [
+                Template(p).safe_substitute(substitution_variables)
+                if isinstance(p, str)
+                else str(p)
+                for p in RuleInput.resolve(
+                    *self.order_only.get(required=True),
                     single=False,
+                    convert_strings_to_paths=False,
                 )
-                if order_only is not None
-                else None
-            )
+            ]
             str_resolved_outputs = [str(output) for output in resolved_outputs]
             str_resolved_implicit_outputs = [
                 str(implicit_output) for implicit_output in resolved_implicit_outputs

@@ -1,0 +1,14 @@
+from pathlib import Path
+
+from bob.prelude import *
+
+r = Rule(
+    "echo hi",
+    implicit=["$in.implicit", Path("$in.not.substituted")],
+    order_only=["$in.orderonly"],
+    implicit_outputs=["$out.implicit"],
+    single_input=True,
+)
+
+r.build("out-1", inputs=[Path("in-1")])
+r.build("out-2", inputs=["in-2"])
