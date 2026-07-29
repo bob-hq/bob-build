@@ -271,7 +271,7 @@ class Rule[OutputType]:
                 continue
 
             if not template.is_valid():
-                raise ValueError(f"Invalid {template_name}: {depfile}")
+                raise ValueError(f"Invalid {template_name}: {template}")
 
             variable_names.update(template.get_identifiers())
 
