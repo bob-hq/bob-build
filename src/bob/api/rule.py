@@ -341,8 +341,12 @@ class Rule[OutputType]:
                 context.builddir / context.current_build_subdir / output
                 for output in outputs
             ]
+            resolved_implicit_outputs = [
+                context.builddir / context.current_build_subdir / implicit_output
+                for implicit_output in (implicit_outputs or [])
+            ]
             if not context.allow_build_outside_builddir:
-                for output in resolved_outputs:
+                for output in resolved_outputs + resolved_implicit_outputs:
                     if context.builddir.resolve() not in output.resolve().parents:
                         raise ValueError(
                             f"Refusing to build {output} outside of the build directory"
@@ -410,12 +414,10 @@ class Rule[OutputType]:
                 if order_only is not None
                 else None
             )
-            resolved_implicit_outputs = (
-                list(map(str, implicit_outputs))
-                if implicit_outputs is not None
-                else None
-            )
             str_resolved_outputs = [str(output) for output in resolved_outputs]
+            str_resolved_implicit_outputs = [
+                str(implicit_output) for implicit_output in resolved_implicit_outputs
+            ]
 
             assert context.writer is not None
             assert context.compdb_writer is not None
@@ -426,7 +428,7 @@ class Rule[OutputType]:
                 implicit=resolved_implicit,
                 order_only=resolved_order_only,
                 variables=resolved_variables,
-                implicit_outputs=resolved_implicit_outputs,
+                implicit_outputs=str_resolved_implicit_outputs,
                 pool=pool,
                 dyndep=dyndep,
             )
@@ -439,7 +441,7 @@ class Rule[OutputType]:
                     implicit=resolved_implicit,
                     order_only=resolved_order_only,
                     variables=resolved_variables,
-                    implicit_outputs=resolved_implicit_outputs,
+                    implicit_outputs=str_resolved_implicit_outputs,
                     pool=pool,
                     dyndep=dyndep,
                 )
@@ -450,7 +452,7 @@ class Rule[OutputType]:
                     inputs=resolved_inputs,
                     implicit=resolved_implicit,
                     order_only=resolved_order_only,
-                    implicit_outputs=resolved_implicit_outputs,
+                    implicit_outputs=str_resolved_implicit_outputs,
                 )
 
             if self.single_output:

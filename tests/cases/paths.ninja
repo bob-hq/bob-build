@@ -6,6 +6,7 @@ rule bob-1
   command = echo hi > $out
 
 build build/somewhere/in-somewhere: bob-1
+build build/somewhere/another-in-somewhere | build/somewhere/implicit-output-in-somewhere: bob-1
 build build/somewhere/deeper/in-deeper: bob-1
 build build/another/in-another: bob-1
 build build/resolve-src: bob-1 $root/tests/cases/inside/deep/in-deep $root/tests/cases/inside/deep/another-in-deep

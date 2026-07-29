@@ -7,6 +7,7 @@ r = Rule("echo hi > $out")
 with build_in("somewhere"):
     assert builddir() == Path("build") / "somewhere"
     r.build("in-somewhere")
+    r.build("another-in-somewhere", implicit_outputs=["implicit-output-in-somewhere"])
 
     with build_in("deeper"):
         assert builddir() == Path("build") / "somewhere" / "deeper"
