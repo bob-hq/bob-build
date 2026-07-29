@@ -42,7 +42,7 @@ class ScopeList(Scope):
         self.scopes = scopes
 
     def _close(self) -> None:
-        for scope in self.scopes:
+        for scope in reversed(self.scopes):
             scope._close()
 
     def __or__(self, other: Scope | Self) -> Scope:
