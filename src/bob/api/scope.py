@@ -32,11 +32,11 @@ class Scope(abc.ABC):
     ) -> None:
         self.close()
 
-    def __or__(self, other: Self | "ScopeList") -> "Scope":
-        return ScopeList([self]) | other
+    def __or__(self, other: Self | "ScopeStack") -> "Scope":
+        return ScopeStack([self]) | other
 
 
-class ScopeList(Scope):
+class ScopeStack(Scope):
     def __init__(self, scopes: list[Scope]) -> None:
         super().__init__()
         self.scopes = scopes
@@ -46,9 +46,13 @@ class ScopeList(Scope):
             scope._close()
 
     def __or__(self, other: Scope | Self) -> Scope:
-        if isinstance(other, ScopeList):
-            return ScopeList(self.scopes + other.scopes)
-        return ScopeList(self.scopes + [other])
+        if isinstance(other, ScopeStack):
+            return ScopeStack(self.scopes + other.scopes)
+        return ScopeStack(self.scopes + [other])
+
+
+# TODO: remove in 0.2
+ScopeList = ScopeStack
 
 
 class DictionaryScope(Scope):

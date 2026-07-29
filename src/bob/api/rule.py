@@ -9,7 +9,7 @@ from typing import Any, Literal, TypeAlias, TypeVar, overload
 
 from ninja.ninja_syntax import escape as ninja_escape
 
-from bob.api.scope import ScopeList
+from bob.api.scope import ScopeStack
 from bob.api.variable import NINJA_PROVIDED_VARIABLES, Variable
 from bob.constants import BOB_BUILDDIR_SUBDIRECTORY
 from bob.core.context import Context
@@ -327,7 +327,7 @@ class Rule[OutputType]:
         if self.single_input and (inputs is None or len(inputs) != 1):
             raise ValueError("Expected a single input!")
 
-        with ScopeList([self[key].set(value) for key, value in variables.items()]):
+        with ScopeStack([self[key].set(value) for key, value in variables.items()]):
             for variable in self.variable_names:
                 if (
                     variable not in NINJA_PROVIDED_VARIABLES

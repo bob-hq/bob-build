@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any
 
-from bob.api.scope import DictionaryScope, Scope, ScopeList
+from bob.api.scope import DictionaryScope, Scope, ScopeStack
 
 if TYPE_CHECKING:
     from bob.api.rule import Rule, RuleInput
@@ -39,13 +39,13 @@ class Variable:
         return self.rules[0].variables[self.name]
 
     def set(self, value: "RuleInput.Multiple") -> Scope:
-        return ScopeList(
+        return ScopeStack(
             [DictionaryScope(rule.variables, {self.name: value}) for rule in self.rules]
         )
 
     def add(self, value: "RuleInput.Multiple") -> Scope:
         value = self.get() + value  # type: ignore[operator] # ty: ignore[unsupported-operator]
 
-        return ScopeList(
+        return ScopeStack(
             [DictionaryScope(rule.variables, {self.name: value}) for rule in self.rules]
         )
