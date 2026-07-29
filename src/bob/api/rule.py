@@ -543,14 +543,21 @@ def shell_output_rule(
 
 
 @overload
-def shell(command: str, text: Literal[True] = True, check: bool = True) -> str: ...
+def shell(
+    command: str, text: Literal[True] = True, check: bool = True, strip: bool = False
+) -> str: ...
 
 
 @overload
-def shell(command: str, text: Literal[False] = False, check: bool = True) -> bytes: ...
+def shell(
+    command: str, text: Literal[False] = False, check: bool = True, strip: bool = False
+) -> bytes: ...
 
 
-def shell(command: str, text: bool = True, check: bool = True) -> str | bytes:
+# TODO: change strip to True by default in 0.2
+def shell(
+    command: str, text: bool = True, check: bool = True, strip: bool = False
+) -> str | bytes:
     context = Context.current()
 
     shell_index = context.variables.get("shell_index", 1)
@@ -574,6 +581,9 @@ def shell(command: str, text: bool = True, check: bool = True) -> str | bytes:
     output_file = generated.path.resolve()
     output_file.parent.mkdir(parents=True, exist_ok=True)
     output_file.write_bytes(output)
+
+    if strip:
+        output = output.strip()
 
     if text:
         return output.decode()
