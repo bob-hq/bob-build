@@ -6,6 +6,9 @@ import bobstd.c as c
 
 from bob.prelude import *
 
+# When you use other packages you should verify their version as well
+bob_required_package_version("bobstd", "0.2.0")
+
 c.toolchain(ccbin="gcc", arbin="ar")
 
 if (cflags := config("cflags")) is not None:

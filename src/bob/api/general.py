@@ -33,9 +33,12 @@ def config(name: str, required: bool = False, default: None | str = None) -> Non
     return context.configs[name]
 
 
-def bob_required_version(version: str, bob_version: None | str = None) -> None:
-    if bob_version is None:
-        bob_version = importlib_version("bob-build")
+# TODO: remove _version in 0.2
+def bob_required_package_version(
+    package: str, version: str, _actual: None | str = None
+) -> None:
+    if _actual is None:
+        _actual = importlib_version(package)
 
     if "." not in version:
         raise ValueError(
@@ -43,7 +46,7 @@ def bob_required_version(version: str, bob_version: None | str = None) -> None:
         )
 
     required_major, required_minor, *required_rest = map(int, version.split("."))
-    bob_major, bob_minor, bob_patch = map(int, bob_version.split("."))
+    actual_major, actual_minor, actual_patch = map(int, _actual.split("."))
 
     if required_major == 0:
         assert len(required_rest) == 1, (
@@ -55,11 +58,16 @@ def bob_required_version(version: str, bob_version: None | str = None) -> None:
         )
 
     if (
-        required_major != bob_major
-        or bob_minor < required_minor
+        required_major != actual_major
+        or actual_minor < required_minor
         or (
             required_major == 0
-            and (bob_minor != required_minor or bob_patch < required_rest[0])
+            and (actual_minor != required_minor or actual_patch < required_rest[0])
         )
     ):
-        raise Exception(f"Invalid bob version: need {version} but have {bob_version}")
+        raise Exception(f"Invalid {package} version: need {version} but have {_actual}")
+
+
+# TODO: remove bob_version in 0.2
+def bob_required_version(version: str, bob_version: None | str = None) -> None:
+    bob_required_package_version("bob-build", version, bob_version)

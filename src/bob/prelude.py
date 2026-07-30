@@ -1,4 +1,4 @@
-from bob.api.general import bob_required_version, config
+from bob.api.general import bob_required_package_version, bob_required_version, config
 from bob.api.path import build_in, builddir, glob, read, src_in, srcdir
 from bob.api.rule import (
     FileTarget,
@@ -41,4 +41,5 @@ __all__ = [
     "use",
     "plugin_scope",
     "bob_required_version",
+    "bob_required_package_version",
 ]
