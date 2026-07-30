@@ -42,8 +42,24 @@ def bob_required_version(version: str, bob_version: None | str = None) -> None:
             f"Invalid required version {version} doesn't contain minor requirement!"
         )
 
-    major, minor, *_ = map(int, version.split("."))
-    bob_major, bob_minor, *_ = map(int, bob_version.split("."))
+    required_major, required_minor, *required_rest = map(int, version.split("."))
+    bob_major, bob_minor, bob_patch = map(int, bob_version.split("."))
 
-    if major != bob_major or bob_minor < minor or (major == 0 and bob_minor != minor):
+    if required_major == 0:
+        assert len(required_rest) == 1, (
+            f'For major 0 you must specify patch version as well, e.g. "0.{required_minor}.X", got: "{version}"'
+        )
+    else:
+        assert len(required_rest) == 0, (
+            f'For non-zero major {required_major} you must not specify patch version, e.g. "{required_major}.{required_minor}", got: "{version}"'
+        )
+
+    if (
+        required_major != bob_major
+        or bob_minor < required_minor
+        or (
+            required_major == 0
+            and (bob_minor != required_minor or bob_patch < required_rest[0])
+        )
+    ):
         raise Exception(f"Invalid bob version: need {version} but have {bob_version}")

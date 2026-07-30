@@ -7,7 +7,7 @@ from pathlib import Path
 from bob.prelude import *
 
 # You should always verify the current version of Bob is compatible with your Bobfile.
-bob_required_version("0.1")
+bob_required_version("0.1.0")
 
 
 # Associate some command with $variables with a rule.
