@@ -240,6 +240,8 @@ class Rule[OutputType]:
         implicit: None | list[RuleInput.Type] = None,
         order_only: None | list[RuleInput.Type] = None,
         implicit_outputs: None | list[str | Path] = None,
+        rspfile: None | str = None,
+        rspfile_content: None | str = None,
     ):
         from bob.api.scoped_value import ScopedValue
 
@@ -256,6 +258,10 @@ class Rule[OutputType]:
         if variables is None:
             variables = {}
 
+        assert (rspfile is None) == (rspfile_content is None), (
+            "When using response files, you must specify both `rspfile` and `rspfile_content`"
+        )
+
         command_template = Template(command)
         depfile_template = Template(depfile) if depfile is not None else None
         description_template = (
@@ -264,6 +270,9 @@ class Rule[OutputType]:
         compile_command_template = (
             Template(compile_command) if compile_command is not None else None
         )
+        rspfile_content_template = (
+            Template(rspfile_content) if rspfile_content is not None else None
+        )
 
         variable_names: set[str] = set()
         for template_name, template in (
@@ -271,6 +280,7 @@ class Rule[OutputType]:
             ("depfile", depfile_template),
             ("description", description_template),
             ("compile command", compile_command_template),
+            ("rspfile content", rspfile_content_template),
         ):
             if template is None:
                 continue
@@ -292,6 +302,7 @@ class Rule[OutputType]:
         self.implicit = ScopedValue(implicit or [])
         self.order_only = ScopedValue(order_only or [])
         self.implicit_outputs = ScopedValue(implicit_outputs or [])
+        self.has_rspfile = rspfile is not None
 
         for key, value in variables.items():
             self[key].set(value)
@@ -307,6 +318,8 @@ class Rule[OutputType]:
             pool=pool,
             restat=restat,
             deps=deps,
+            rspfile=rspfile,
+            rspfile_content=rspfile_content,
         )
         context.writer.newline()
         if compile_command is not None:
@@ -335,10 +348,16 @@ class Rule[OutputType]:
         if self.single_input and (inputs is None or len(inputs) != 1):
             raise ValueError("Expected a single input!")
 
+        provided_variables = (
+            {*NINJA_PROVIDED_VARIABLES, "rspfile"}
+            if self.has_rspfile
+            else NINJA_PROVIDED_VARIABLES
+        )
+
         with ScopeStack([self[key].set(value) for key, value in variables.items()]):
             for variable in self.variable_names:
                 if (
-                    variable not in NINJA_PROVIDED_VARIABLES
+                    variable not in provided_variables
                     and variable not in self.variables
                 ):
                     raise ValueError(f'Variable "{variable}" is uninitialized')

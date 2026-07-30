@@ -12,3 +12,6 @@ r = Rule(
 
 r.build("out-1", inputs=[Path("in-1")])
 r.build("out-2", inputs=["in-2"])
+
+rspfile_rule = Rule("cat $rspfile > $out", rspfile="$out.rsp", rspfile_content="$in")
+rspfile_rule.build("rspfile-out", inputs=["rspfile-in-1", "rspfile-in-2"])

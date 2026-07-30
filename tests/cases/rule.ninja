@@ -7,12 +7,18 @@ rule bob-1
 
 build build/out-1 | build/out-1.implicit: bob-1 $root/tests/cases/in-1 | $root/tests/cases/in-1.implicit $root/tests/cases/$in.not.substituted || $root/tests/cases/in-1.orderonly
 build build/out-2 | build/out-2.implicit: bob-1 $root/tests/cases/in-2 | $root/tests/cases/in-2.implicit $root/tests/cases/$in.not.substituted || $root/tests/cases/in-2.orderonly
-rule configure-bob-2
+rule bob-2
+  command = cat $rspfile > $out
+  rspfile = $out.rsp
+  rspfile_content = $in
+
+build build/rspfile-out: bob-2 $root/tests/cases/rspfile-in-1 $root/tests/cases/rspfile-in-2
+rule configure-bob-3
   command = FORCE_COLOR=1 $bobbin configure --use-current-configs -f $bobfile
   description = CONFIGURE $out
   generator = 1
   pool = console
 
-build build/.bob/build.ninja: configure-bob-2 | $root/tests/cases/rule.bob build/.bob/configs.json
+build build/.bob/build.ninja: configure-bob-3 | $root/tests/cases/rule.bob build/.bob/configs.json
   bobbin = $root/.venv/bin/python -m bob
   bobfile = $root/tests/cases/rule.bob
