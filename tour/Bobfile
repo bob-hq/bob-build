@@ -11,7 +11,10 @@ bob_required_version("0.1.0")
 
 
 # Associate some command with $variables with a rule.
-r = Rule("cat $in > $out; echo $something >> $out", variables={"something": []})
+# You can use $$ to escape a $ character in your command.
+r = Rule(
+    "cat $in > $out; echo $something $$(whoami) >> $out", variables={"something": []}
+)
 
 # Build a target using a specific rule.
 # `in.txt` should be in the srcdir, which is initially the directory containing the Bobfile.
