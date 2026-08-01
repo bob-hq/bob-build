@@ -5,7 +5,9 @@
     <br />
     <img alt="License MIT" src="https://img.shields.io/badge/license-MIT-blue.svg">
     <img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg">
-    <img alt="PyPI Version" src="https://img.shields.io/pypi/v/bob-build">
+    <img alt="PyPI Version" src="https://img.shields.io/pypi/v/bob-build?logo=pypi">
+    <img alt="Workflow Status" src="https://img.shields.io/github/actions/workflow/status/bob-hq/bob-build/ci.yaml?logo=github">
+    <img alt="Ruff" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json">
 </h1>
 
 <h4 align="center">
@@ -26,13 +28,13 @@
 
 ```bash
 uv tool install --upgrade bob-build --with bobstd
+# Optionally set up shell completions for Bob (currently supported for fish).
+bob completions
 ```
 
-See the [tour](./tour)!
+**See the [tour](./tour) and specifically its [root Bobfile](./tour/Bobfile) for a demo of building with Bob!**
 
 ## CLI
-
-You can try these out in the tour as well.
 
 ```bash
 # Build the project in the current directory (you should have a Bobfile).
@@ -45,9 +47,13 @@ bob build -c DEBUG=n
 bob build -c DEBUG=y --builddir build-debug
 # More options, including options passed to Ninja (after --).
 bob build --clean -j 4 -- -v
-# Create a compile_commands.json.
+# Create a compile_commands.json with the given configs.
 bob compdb -c DEBUG=n
+# Create a compile_commands.json only including `build/.subbob-2-src/basic` and its dependencies.
+bob compdb build/.subbob-2-src/basic
 ```
+
+Try these out in the tour!
 
 ## Goals
 
