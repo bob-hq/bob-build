@@ -54,8 +54,8 @@ def glob(pattern: str, path: None | str | Path = None) -> list[Path]:
     if path is None:
         path = Path(".")
 
-    if isinstance(path, str):
-        path = Path(path)
+    src = srcdir()
+    path = src / path
 
     context.configure_implicit_dependencies.add(path)
     context.configure_implicit_dependencies.update(
@@ -63,6 +63,6 @@ def glob(pattern: str, path: None | str | Path = None) -> list[Path]:
     )
 
     return sorted(
-        path.glob(pattern),
+        [Path(p.relative_to(src)) for p in path.glob(pattern)],
         key=lambda p: str(p),
     )
