@@ -81,6 +81,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "bobstd" },
     { name = "mypy" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -97,12 +98,25 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "bobstd", specifier = ">=0.2.3" },
     { name = "mypy", specifier = ">=2.1.0" },
     { name = "pre-commit", specifier = ">=4.6.0" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
     { name = "ruff", specifier = ">=0.15.18" },
     { name = "ty", specifier = ">=0.0.51" },
+]
+
+[[package]]
+name = "bobstd"
+version = "0.2.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "bob-build" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e2/b0/dee3b394f3b1296d066b81e4d00e6d02c0e38d6c09bc734e83d4f07be22c/bobstd-0.2.3.tar.gz", hash = "sha256:5dcedbb6ec33b41447e3b90168b474878ed05be12ff5e3fd88aba48ad4f1e9b6", size = 3105, upload-time = "2026-08-19T07:05:43.716Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/84/db/b3f7685d87522a4f6b2eee72a75dbdd9835846434ff069bed5b4923aa3b5/bobstd-0.2.3-py3-none-any.whl", hash = "sha256:f169ba7d174a75a0dbe9fadfd4fa437a42c9d23162d92c95fd94b42e06f4117b", size = 4084, upload-time = "2026-08-19T07:05:42.831Z" },
 ]
 
 [[package]]
