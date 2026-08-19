@@ -1,6 +1,6 @@
 import abc
 from types import TracebackType
-from typing import Any, Self, Type
+from typing import Any, Type
 
 from bob.core.context import Context
 
@@ -32,7 +32,7 @@ class Scope(abc.ABC):
     ) -> None:
         self.close()
 
-    def __or__(self, other: Self | "ScopeStack") -> "Scope":
+    def __or__(self, other: "Scope | ScopeStack") -> "Scope":
         return ScopeStack([self]) | other
 
 
@@ -45,7 +45,7 @@ class ScopeStack(Scope):
         for scope in reversed(self.scopes):
             scope._close()
 
-    def __or__(self, other: Scope | Self) -> Scope:
+    def __or__(self, other: "Scope | ScopeStack") -> Scope:
         if isinstance(other, ScopeStack):
             return ScopeStack(self.scopes + other.scopes)
         return ScopeStack(self.scopes + [other])

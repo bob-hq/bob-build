@@ -1,12 +1,14 @@
 from pathlib import Path
-from typing import Literal, overload
+from typing import Generic, Literal, TypeVar, overload
 
-from bob.api.rule import Rule, RuleInput
+from bob.api.rule import OutputType, Rule, RuleInput
 from bob.api.scope import AttributeScope, Scope
 from bob.api.variable import Variable
 
+T = TypeVar("T")
 
-class ScopedValue[T]:
+
+class ScopedValue(Generic[T]):
     def __init__(self, value: None | T = None) -> None:
         self.value = value
 
@@ -37,9 +39,9 @@ class ScopedValue[T]:
         return self.set(self.get() + value)  # type: ignore[operator] # ty: ignore[unsupported-operator]
 
 
-class ScopedRule[OutputType](ScopedValue[Rule[OutputType]]):
+class ScopedRule(Generic[OutputType], ScopedValue[Rule[OutputType]]):
     def __init__(self, base: Rule[OutputType]) -> None:
-        super().__init__(base)
+        super().__init__(base)  # type: ignore[arg-type]
 
         self.single_input = base.single_input
         self.single_output = base.single_output
@@ -56,7 +58,7 @@ class ScopedRule[OutputType](ScopedValue[Rule[OutputType]]):
                 "Invalid rule provided: expected a rule which accepts a single input!"
             )
 
-        return super().set(value)
+        return super().set(value)  # type: ignore[arg-type]
 
     def build(
         self,

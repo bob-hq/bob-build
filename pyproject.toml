@@ -4,7 +4,7 @@ version = "0.1.7"
 description = "The ergonomic Ninja-based build system."
 readme = "README.md"
 authors = [{ name = "Noam Zaks", email = "noam@noamzaks.com" }]
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE.md"]
 dependencies = ["ninja>=1.13.0", "rich-click>=1.9.8"]
@@ -21,7 +21,6 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "bobstd>=0.1.0",
     "mypy>=2.1.0",
     "pre-commit>=4.6.0",
     "pytest>=9.1.1",

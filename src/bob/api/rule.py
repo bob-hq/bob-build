@@ -4,8 +4,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from string import Template
-from typing import Any, Literal, TypeAlias, TypeVar, overload
+from typing import Any, Generic, Literal, TypeAlias, TypeVar, overload
 
 from ninja.ninja_syntax import escape as ninja_escape
 
@@ -13,6 +12,7 @@ from bob.api.scope import ScopeStack
 from bob.api.variable import NINJA_PROVIDED_VARIABLES, Variable
 from bob.constants import BOB_BUILDDIR_SUBDIRECTORY
 from bob.core.context import Context
+from bob.utilities.fills import Template
 
 
 @dataclass(frozen=True)
@@ -179,7 +179,7 @@ class RuleInput:
 OutputType = TypeVar("OutputType", FileTarget, list[FileTarget])
 
 
-class Rule[OutputType]:
+class Rule(Generic[OutputType]):
     @overload
     def __new__(
         cls,

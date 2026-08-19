@@ -2,7 +2,7 @@ import runpy
 import sys
 from pathlib import Path
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, ClassVar, Self, Type
+from typing import TYPE_CHECKING, Any, ClassVar, Type
 
 from ninja import Writer
 
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 class Context:
-    _CURRENT: ClassVar[None | Self] = None
+    _CURRENT: ClassVar["None | Context"] = None
 
     def __init__(
         self,
@@ -51,7 +51,7 @@ class Context:
         self.current_build_subdir = Path(".")
         self.current_src_subdir = bobfile.parent
 
-    def __enter__(self) -> Self:
+    def __enter__(self) -> "Context":
         assert Context._CURRENT is None
 
         (self.builddir / BOB_BUILDDIR_SUBDIRECTORY).mkdir(parents=True, exist_ok=True)
