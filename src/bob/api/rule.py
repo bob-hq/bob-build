@@ -553,7 +553,7 @@ def shell_output_rule(
 ) -> Rule[FileTarget]:
     return Rule(
         command=f"(({command}) > $out.new && cmp -s $out $out.new || mv $out.new $out); rm -f $out.new",
-        description="SHELL OUTPUT",
+        description="SHELL",
         restat=True,
         pool=pool,
         always=True,
