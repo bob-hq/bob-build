@@ -36,7 +36,10 @@ def include(path: str | Path) -> None:
 
 
 def subbob(
-    path: str | Path, configs: None | dict[str, str] = None, **imports: Any
+    path: str | Path,
+    configs: None | dict[str, str] = None,
+    unique_builddir: bool = True,
+    **imports: Any,
 ) -> dict[str, Any]:
     if configs is None:
         configs = {}
@@ -48,22 +51,26 @@ def subbob(
     subbob_index = context.variables.get("subbob_index", 1)
     context.variables["subbob_index"] = subbob_index + 1
 
-    subbob_name = f".subbob-{subbob_index}"
+    changes = {
+        "current_src_subdir": bobfile.parent,
+        "imports": imports,
+        "exports": {},
+        "configs": configs,
+    }
 
-    if bobfile.name != "Bobfile":
-        subbob_name += f"-{bobfile.stem}"
-    else:
-        subbob_name += f"-{bobfile.parent.name}"
+    if unique_builddir:
+        subbob_name = f".subbob-{subbob_index}"
+
+        if bobfile.name != "Bobfile":
+            subbob_name += f"-{bobfile.stem}"
+        else:
+            subbob_name += f"-{bobfile.parent.name}"
+
+        changes["current_build_subdir"] = Path(subbob_name)
 
     with AttributeScope(
         context,
-        {
-            "current_src_subdir": bobfile.parent,
-            "current_build_subdir": Path(subbob_name),
-            "imports": imports,
-            "exports": {},
-            "configs": configs,
-        },
+        changes,
     ):
         scopes_before = len(context.scopes)
         context.evaluate(bobfile)
