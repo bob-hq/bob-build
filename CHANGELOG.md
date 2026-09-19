@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.1.9] - 2026-09-19
+
+https://github.com/bob-hq/bob/compare/v0.1.8...v0.1.9
+
+## Added
+
+- You can now set `unique_builddir` to False in `subbob` to make it build in the current build directory rather than a unique directory.
+
+## Changed
+
+- Bob's reserved build subdirectory is now `bob` instead of `.bob`.
+- Subbobs are now built inside Bob's reserved build subdirectory.
+
+
 ## [0.1.8] - 2026-08-19
 
 https://github.com/bob-hq/bob/compare/v0.1.7...v0.1.8
