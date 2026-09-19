@@ -1,7 +1,7 @@
 from pathlib import Path
 
 DEFAULT_BUILDDIR = Path("build")
-BOB_BUILDDIR_SUBDIRECTORY = Path(".bob")
+BOB_BUILDDIR_SUBDIRECTORY = Path("bob")
 COMPDB_PATH = Path("compile_commands.json")
 
 

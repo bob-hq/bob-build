@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from bob.api.scope import AttributeScope
+from bob.constants import BOB_BUILDDIR_SUBDIRECTORY
 from bob.core.context import Context
 
 
@@ -35,6 +36,7 @@ def include(path: str | Path) -> None:
         )
 
 
+# TODO: change `imports` to not be kwargs (to avoid breakages/confusion with regard to other parameters) in 0.2
 def subbob(
     path: str | Path,
     configs: None | dict[str, str] = None,
@@ -59,14 +61,14 @@ def subbob(
     }
 
     if unique_builddir:
-        subbob_name = f".subbob-{subbob_index}"
+        subbob_name = f"subbob-{subbob_index}"
 
         if bobfile.name != "Bobfile":
             subbob_name += f"-{bobfile.stem}"
         else:
             subbob_name += f"-{bobfile.parent.name}"
 
-        changes["current_build_subdir"] = Path(subbob_name)
+        changes["current_build_subdir"] = BOB_BUILDDIR_SUBDIRECTORY / subbob_name
 
     with AttributeScope(
         context,
