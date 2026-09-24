@@ -10,11 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 https://github.com/bob-hq/bob/compare/v0.1.8...v0.1.9
 
-## Added
+### Added
 
 - You can now set `unique_builddir` to False in `subbob` to make it build in the current build directory rather than a unique directory.
 
-## Changed
+### Changed
 
 - Bob's reserved build subdirectory is now `bob` instead of `.bob`.
 - Subbobs are now built inside Bob's reserved build subdirectory.
@@ -24,7 +24,7 @@ https://github.com/bob-hq/bob/compare/v0.1.8...v0.1.9
 
 https://github.com/bob-hq/bob/compare/v0.1.7...v0.1.8
 
-## Changed
+### Changed
 
 - Bob now supports Python 3.10 or newer.
 
@@ -33,7 +33,7 @@ https://github.com/bob-hq/bob/compare/v0.1.7...v0.1.8
 
 https://github.com/bob-hq/bob/compare/v0.1.6...v0.1.7
 
-## Fixed
+### Fixed
 
 - Glob is now correctly srcdir-relative.
 
@@ -42,26 +42,26 @@ https://github.com/bob-hq/bob/compare/v0.1.6...v0.1.7
 
 https://github.com/bob-hq/bob/compare/v0.1.5...v0.1.6
 
-## Added
+### Added
 
 - You can now use `bob_required_package_version` for generic Python package versions which should be available in Bob's Python environment.
 - You can now specify `rspfile` and `rspfile_content` for a Rule, and then use the `$rspfile` variable in the rule's command or variables.
 
-## Fixed
+### Fixed
 
 - `bob_required_version` for 0 majors now correctly requires a required patch version as well.
 
 
-## [0.1.5] - 2026-07-30
+### [0.1.5] - 2026-07-30
 
 https://github.com/bob-hq/bob/compare/v0.1.4...v0.1.5
 
-## Added
+### Added
 
 - A `Rule` can now have `implicit`, `order_only` and `implicit_output` that are templates which are added to each built target's implicit inputs, order only inputs, and implicit outputs.
 - The `shell` function now accepts a `strip` parameter that will be True by default in `0.2`.
 
-## Fixed
+### Fixed
 
 - Scopes of a `ScopeList` are now closed in reverse order, so `ScopeList` has been renamed to `ScopeStack`.
 - Implicit outputs are now resolved to be inside the current build directory.
@@ -71,7 +71,7 @@ https://github.com/bob-hq/bob/compare/v0.1.4...v0.1.5
 
 https://github.com/bob-hq/bob/compare/v0.1.3...v0.1.4
 
-## Added
+### Added
 
 - The compdb command now supports emitting the compilation database for specific targets only.
 
