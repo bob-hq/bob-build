@@ -30,6 +30,11 @@ def srcdir() -> Path:
     return context.current_src_subdir
 
 
+def rootdir() -> Path:
+    src = srcdir()
+    return Path(*([".."] * len(src.parts)))
+
+
 @overload
 def read(path: RuleInput.Type, text: Literal[True] = True) -> str: ...
 @overload

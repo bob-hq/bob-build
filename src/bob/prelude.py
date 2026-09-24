@@ -1,5 +1,5 @@
 from bob.api.general import bob_required_package_version, bob_required_version, config
-from bob.api.path import build_in, builddir, glob, read, src_in, srcdir
+from bob.api.path import build_in, builddir, glob, read, rootdir, src_in, srcdir
 from bob.api.rule import (
     FileTarget,
     PhonyTarget,
@@ -35,6 +35,7 @@ __all__ = [
     "src_in",
     "builddir",
     "srcdir",
+    "rootdir",
     "include",
     "subbob",
     "export",
