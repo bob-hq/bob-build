@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.1.10] - 2026-09-24
+
+https://github.com/bob-hq/bob/compare/v0.1.9...v0.1.10
+
+## Added
+
+- You can now use `rootdir` in cases when you want to get out of the srcdir.
+
+
 ## [0.1.9] - 2026-09-19
 
 https://github.com/bob-hq/bob/compare/v0.1.8...v0.1.9
