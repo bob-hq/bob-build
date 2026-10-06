@@ -1,3 +1,4 @@
+import math
 import os
 import subprocess
 import sys
@@ -81,9 +82,19 @@ def pretty_run_ninja(arguments: list[str]) -> int:
 
             color = PRETTY_COLORS[ord(description[0]) % len(PRETTY_COLORS)]
 
+            outputs = " " + outputs
+
+            if (available := console.width - DESCRIPTION_WIDTH) < len(outputs):
+                available -= 3
+                outputs = (
+                    outputs[: available // 2]
+                    + "..."
+                    + outputs[-math.ceil(available / 2) :]
+                )
+
             console.print(
                 Text(description.ljust(DESCRIPTION_WIDTH), style=color)
-                + Text(" " + outputs, style="white"),
+                + Text(outputs, style="white"),
                 highlight=False,
                 markup=False,
             )
