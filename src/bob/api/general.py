@@ -12,13 +12,15 @@ def config(
 
 
 @overload
-def config(name: str, required: Literal[False] = False, default: str = "") -> str: ...
+def config(name: str, required: bool, default: str) -> str: ...
 
 
 @overload
-def config(
-    name: str, required: Literal[True] = True, default: None | str = None
-) -> str: ...
+def config(name: str, *, default: str) -> str: ...
+
+
+@overload
+def config(name: str, required: Literal[True], default: None = None) -> str: ...
 
 
 def config(name: str, required: bool = False, default: None | str = None) -> None | str:

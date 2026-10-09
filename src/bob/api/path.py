@@ -36,9 +36,9 @@ def rootdir() -> Path:
 
 
 @overload
-def read(path: RuleInput.Type, text: Literal[True] = True) -> str: ...
-@overload
 def read(path: RuleInput.Type, text: Literal[False] = False) -> bytes: ...
+@overload
+def read(path: RuleInput.Type, text: Literal[True]) -> str: ...
 
 
 def read(path: RuleInput.Type, text: bool = False) -> str | bytes:

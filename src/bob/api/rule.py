@@ -51,7 +51,7 @@ class RuleInput:
         convert_strings_to_paths: bool = True,
         path_only: Literal[False] = False,
         convert_to_string: Literal[False] = False,
-        single: Literal[False] = False,
+        single: Literal[False],
     ) -> list[Path | str]: ...
 
     @overload
@@ -60,7 +60,7 @@ class RuleInput:
         *values: Type,
         srcdir_relative_paths: bool = True,
         convert_strings_to_paths: bool = True,
-        path_only: Literal[True] = True,
+        path_only: Literal[True],
         convert_to_string: Literal[False] = False,
         single: Literal[True] = True,
     ) -> Path: ...
@@ -71,9 +71,9 @@ class RuleInput:
         *values: Type,
         srcdir_relative_paths: bool = True,
         convert_strings_to_paths: bool = True,
-        path_only: Literal[True] = True,
+        path_only: Literal[True],
         convert_to_string: Literal[False] = False,
-        single: Literal[False] = False,
+        single: Literal[False],
     ) -> list[Path]: ...
 
     @overload
@@ -83,7 +83,7 @@ class RuleInput:
         srcdir_relative_paths: bool = True,
         convert_strings_to_paths: bool = True,
         path_only: Literal[False] = False,
-        convert_to_string: Literal[True] = True,
+        convert_to_string: Literal[True],
         single: Literal[True] = True,
     ) -> str: ...
 
@@ -93,8 +93,8 @@ class RuleInput:
         *values: Type,
         srcdir_relative_paths: bool = True,
         convert_strings_to_paths: bool = True,
-        path_only: Literal[True] = True,
-        convert_to_string: Literal[True] = True,
+        path_only: Literal[True],
+        convert_to_string: Literal[True],
         single: Literal[True] = True,
     ) -> str: ...
 
@@ -105,8 +105,8 @@ class RuleInput:
         srcdir_relative_paths: bool = True,
         convert_strings_to_paths: bool = True,
         path_only: Literal[False] = False,
-        convert_to_string: Literal[True] = True,
-        single: Literal[False] = False,
+        convert_to_string: Literal[True],
+        single: Literal[False],
     ) -> list[str]: ...
 
     @staticmethod
@@ -210,7 +210,8 @@ class Rule(Generic[OutputType]):
         always: bool = False,
         compile_command: None | str = None,
         single_input: bool = False,
-        single_output: Literal[False] = False,
+        *,
+        single_output: Literal[False],
         variables: None | dict[str, RuleInput.Multiple] = None,
     ) -> "Rule[list[FileTarget]]": ...
 
@@ -569,7 +570,7 @@ def shell(
 
 @overload
 def shell(
-    command: str, text: Literal[False] = False, check: bool = True, strip: bool = False
+    command: str, text: Literal[False], check: bool = True, strip: bool = False
 ) -> bytes: ...
 
 
