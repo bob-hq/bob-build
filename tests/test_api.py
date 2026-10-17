@@ -1,5 +1,5 @@
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import pytest
 
@@ -9,7 +9,7 @@ from bob.core.context import Context
 
 
 @pytest.fixture()
-def context(unique_tmp_path: Path, builddir: Path) -> Generator[Context, None, None]:
+def context(unique_tmp_path: Path, builddir: Path) -> Generator[Context]:
     with Context(builddir, Path("Bobfile"), {}, False) as context:
         yield context
 

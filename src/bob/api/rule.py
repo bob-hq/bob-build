@@ -4,14 +4,13 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Generic, Literal, TypeAlias, TypeVar, overload
-
-from ninja.ninja_syntax import escape as ninja_escape
+from typing import Generic, Literal, TypeAlias, TypeVar, cast, overload
 
 from bob.api.scope import ScopeStack
 from bob.api.variable import NINJA_PROVIDED_VARIABLES, Variable
 from bob.constants import BOB_BUILDDIR_SUBDIRECTORY
 from bob.core.context import Context
+from bob.external.ninja_syntax import escape as ninja_escape
 from bob.utilities.fills import Template
 
 
@@ -30,12 +29,14 @@ class RuleInput:
     Multiple: TypeAlias = Type | list[Type]
 
     def __init__(self) -> None:
-        raise Exception("RuleInput is a utility namespace")
+        raise NotImplementedError("RuleInput is a utility namespace")
 
     @overload
     @staticmethod
     def resolve(
-        *values: Type,
+        value: Type,
+        /,
+        *,
         srcdir_relative_paths: bool = True,
         convert_strings_to_paths: bool = True,
         path_only: Literal[False] = False,
@@ -57,7 +58,9 @@ class RuleInput:
     @overload
     @staticmethod
     def resolve(
-        *values: Type,
+        value: Type,
+        /,
+        *,
         srcdir_relative_paths: bool = True,
         convert_strings_to_paths: bool = True,
         path_only: Literal[True],
@@ -79,10 +82,12 @@ class RuleInput:
     @overload
     @staticmethod
     def resolve(
-        *values: Type,
+        value: Type,
+        /,
+        *,
         srcdir_relative_paths: bool = True,
         convert_strings_to_paths: bool = True,
-        path_only: Literal[False] = False,
+        path_only: bool = False,
         convert_to_string: Literal[True],
         single: Literal[True] = True,
     ) -> str: ...
@@ -93,18 +98,7 @@ class RuleInput:
         *values: Type,
         srcdir_relative_paths: bool = True,
         convert_strings_to_paths: bool = True,
-        path_only: Literal[True],
-        convert_to_string: Literal[True],
-        single: Literal[True] = True,
-    ) -> str: ...
-
-    @overload
-    @staticmethod
-    def resolve(
-        *values: Type,
-        srcdir_relative_paths: bool = True,
-        convert_strings_to_paths: bool = True,
-        path_only: Literal[False] = False,
+        path_only: bool = False,
         convert_to_string: Literal[True],
         single: Literal[False],
     ) -> list[str]: ...
@@ -176,14 +170,15 @@ class RuleInput:
             return sep.join(("phony", value.name))
 
 
-OutputType = TypeVar("OutputType", FileTarget, list[FileTarget])
+OutputType = TypeVar("OutputType", bound=FileTarget | list[FileTarget])
 
 
 class Rule(Generic[OutputType]):
     @overload
-    def __new__(
-        cls,
+    def __init__(
+        self: "Rule[FileTarget]",
         command: str,
+        *,
         depfile: None | str = None,
         deps: None | str = None,
         description: None | str = None,
@@ -195,12 +190,18 @@ class Rule(Generic[OutputType]):
         single_input: bool = False,
         single_output: Literal[True] = True,
         variables: None | dict[str, RuleInput.Multiple] = None,
-    ) -> "Rule[FileTarget]": ...
+        implicit: None | list[RuleInput.Type] = None,
+        order_only: None | list[RuleInput.Type] = None,
+        implicit_outputs: None | list[str | Path] = None,
+        rspfile: None | str = None,
+        rspfile_content: None | str = None,
+    ) -> None: ...
 
     @overload
-    def __new__(
-        cls,
+    def __init__(
+        self: "Rule[list[FileTarget]]",
         command: str,
+        *,
         depfile: None | str = None,
         deps: None | str = None,
         description: None | str = None,
@@ -210,23 +211,19 @@ class Rule(Generic[OutputType]):
         always: bool = False,
         compile_command: None | str = None,
         single_input: bool = False,
-        *,
         single_output: Literal[False],
         variables: None | dict[str, RuleInput.Multiple] = None,
-    ) -> "Rule[list[FileTarget]]": ...
-
-    def __new__(
-        cls,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Any:
-        return super().__new__(
-            cls,
-        )
+        implicit: None | list[RuleInput.Type] = None,
+        order_only: None | list[RuleInput.Type] = None,
+        implicit_outputs: None | list[str | Path] = None,
+        rspfile: None | str = None,
+        rspfile_content: None | str = None,
+    ) -> None: ...
 
     def __init__(
         self,
         command: str,
+        *,
         depfile: None | str = None,
         deps: None | str = None,
         description: None | str = None,
@@ -403,7 +400,7 @@ class Rule(Generic[OutputType]):
                             f"Refusing to build {output} outside of the build directory"
                         )
 
-            resolved_variables = {
+            resolved_variables: dict[str, str | list[str] | None] = {
                 key: shlex.join(
                     ninja_escape(
                         RuleInput.resolve(
@@ -415,10 +412,7 @@ class Rule(Generic[OutputType]):
                     )
                     for v in value
                 )
-                if not isinstance(value, str)
-                and not isinstance(value, Path)
-                and not isinstance(value, FileTarget)
-                and not isinstance(value, PhonyTarget)
+                if not isinstance(value, RuleInput.Type)
                 else ninja_escape(
                     RuleInput.resolve(
                         value,
@@ -517,9 +511,11 @@ class Rule(Generic[OutputType]):
                 )
 
             if self.single_output:
-                return FileTarget(resolved_outputs[0])  # type: ignore[return-value] # ty: ignore[invalid-return-type]
+                return cast(OutputType, FileTarget(resolved_outputs[0]))
             else:
-                return [FileTarget(output) for output in resolved_outputs]  # type: ignore[return-value] # ty: ignore[invalid-return-type]
+                return cast(
+                    OutputType, [FileTarget(output) for output in resolved_outputs]
+                )
 
 
 def phony(name: str, inputs: None | list[RuleInput.Type] = None) -> PhonyTarget:
@@ -581,6 +577,8 @@ def shell(
     context = Context.current()
 
     shell_index = context.variables.get("shell_index", 1)
+    if not isinstance(shell_index, int):
+        raise TypeError("The variable 'shell_index' must be an int")
     context.variables["shell_index"] = shell_index + 1
 
     name = BOB_BUILDDIR_SUBDIRECTORY / f"bob-shell-output-{shell_index}"
@@ -589,9 +587,7 @@ def shell(
 
     context.configure_implicit_dependencies.add(generated)
 
-    p = subprocess.run(
-        command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+    p = subprocess.run(command, shell=True, check=False, capture_output=True)
     if check and p.returncode != 0:
         sys.stdout.buffer.write(p.stdout)
         sys.stderr.buffer.write(p.stderr)

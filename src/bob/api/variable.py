@@ -32,8 +32,8 @@ class Variable:
             if name not in rule.variable_names:
                 raise KeyError(name)
 
-        self.rules = rules
-        self.name = name
+        self.rules: tuple[Rule[Any] | ScopedRule[Any], ...] = rules
+        self.name: str = name
 
     def get(self) -> "RuleInput.Multiple":
         return self.rules[0].variables[self.name]
@@ -43,9 +43,8 @@ class Variable:
             [DictionaryScope(rule.variables, {self.name: value}) for rule in self.rules]
         )
 
-    def add(self, value: "RuleInput.Multiple") -> Scope:
-        value = self.get() + value  # type: ignore[operator] # ty: ignore[unsupported-operator]
-
+    def add(self, value: Any) -> Scope:
+        value = self.get() + value
         return ScopeStack(
             [DictionaryScope(rule.variables, {self.name: value}) for rule in self.rules]
         )

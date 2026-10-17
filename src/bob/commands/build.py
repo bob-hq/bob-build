@@ -1,9 +1,9 @@
 import os
 import subprocess
 import sys
+from collections.abc import Collection, Iterable
 from contextlib import AbstractContextManager, nullcontext
 from pathlib import Path
-from typing import Sequence
 
 from ninja import BIN_DIR as NINJA_BIN_DIR
 
@@ -17,12 +17,12 @@ from bob.pretty import pretty_run_ninja
 
 def run_ninja(
     builddir: Path,
-    targets: Sequence[str] = (),
+    targets: Iterable[os.PathLike[str] | str] = (),
     no_pretty: bool = False,
     extra_ninja_arguments: None | list[str] = None,
 ) -> None:
-    arguments = [
-        str(Path(NINJA_BIN_DIR) / "ninja"),
+    arguments: list[os.PathLike[str] | str] = [
+        Path(NINJA_BIN_DIR) / "ninja",
         "-f",
         str(get_build_ninja_path(builddir)),
     ]
@@ -33,7 +33,7 @@ def run_ninja(
     arguments.extend(targets)
 
     returncode = (
-        subprocess.run(arguments).returncode
+        subprocess.run(arguments, check=False).returncode
         if no_pretty
         else pretty_run_ninja(arguments)
     )
@@ -48,9 +48,9 @@ def build(
     do_clean: bool = False,
     no_compdb: bool = False,
     symlink_compdb: bool = False,
-    configs: Sequence[str] = (),
+    configs: Collection[str] = (),
     use_current_configs: bool = False,
-    targets: Sequence[str] = (),
+    targets: Collection[str] = (),
     jobs: None | int = None,
     no_jobserver: bool = False,
     no_pretty: bool = False,

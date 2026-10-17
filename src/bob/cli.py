@@ -1,7 +1,8 @@
 import os
 import subprocess
+from collections.abc import Collection
 from pathlib import Path
-from typing import Sequence
+from typing import cast
 
 import rich_click as click
 from ninja import BIN_DIR as NINJA_BIN_DIR
@@ -12,17 +13,17 @@ from bob.constants import (
     get_build_ninja_path,
     get_used_configs_path,
 )
-from bob.utilities.click import SeparateUnprocessedArgumentsCommand
+from bob.utilities.click import SeparateUnprocessedArgumentsCommand, argument, option
 
 
 def complete_targets(
-    ctx: click.Context, param: click.Parameter, incomplete: str
+    ctx: click.Context, _param: click.Parameter, incomplete: str
 ) -> list[str]:
-    builddir: Path = ctx.params.get("builddir", DEFAULT_BUILDDIR)
+    builddir = cast(Path, ctx.params.get("builddir", DEFAULT_BUILDDIR))
 
     p = subprocess.run(
         [
-            str(Path(NINJA_BIN_DIR) / "ninja"),
+            Path(NINJA_BIN_DIR) / "ninja",
             "-f",
             get_build_ninja_path(builddir),
             "-t",
@@ -30,6 +31,7 @@ def complete_targets(
             "all",
         ],
         capture_output=True,
+        check=False,
     )
 
     if p.returncode != 0:
@@ -44,9 +46,9 @@ def complete_targets(
 
 
 def complete_configs(
-    ctx: click.Context, param: click.Parameter, incomplete: str
+    ctx: click.Context, _param: click.Parameter, incomplete: str
 ) -> list[str]:
-    builddir: Path = ctx.params.get("builddir", DEFAULT_BUILDDIR)
+    builddir = cast(Path, ctx.params.get("builddir", DEFAULT_BUILDDIR))
 
     used_configs_path = get_used_configs_path(builddir)
 
@@ -69,7 +71,7 @@ def cli() -> None:
 
 
 @cli.command()
-@click.option(
+@option(
     "-B",
     "--builddir",
     help="The directory to put the Bob outputs in.",
@@ -77,7 +79,7 @@ def cli() -> None:
     default=DEFAULT_BUILDDIR,
     show_default=True,
 )
-@click.option(
+@option(
     "--bobfile",
     "-f",
     "bobfile",
@@ -86,7 +88,7 @@ def cli() -> None:
     default=Path("Bobfile"),
     show_default=True,
 )
-@click.option(
+@option(
     "-c",
     "--config",
     "configs",
@@ -94,12 +96,12 @@ def cli() -> None:
     help="Supply the given config option.",
     shell_complete=complete_configs,
 )
-@click.option(
+@option(
     "--use-current-configs",
     is_flag=True,
     help="Use the current configs saved from previously configuring.",
 )
-@click.option(
+@option(
     "--allow-build-outside-builddir",
     is_flag=True,
     help="Allow building targets outside of the build directory.",
@@ -107,7 +109,7 @@ def cli() -> None:
 def configure(
     builddir: Path,
     bobfile: Path,
-    configs: Sequence[str],
+    configs: Collection[str],
     use_current_configs: bool,
     allow_build_outside_builddir: bool,
 ) -> None:
@@ -125,7 +127,7 @@ def configure(
 
 
 @cli.command(cls=SeparateUnprocessedArgumentsCommand)
-@click.option(
+@option(
     "-B",
     "--builddir",
     help="The directory to put the Bob outputs in.",
@@ -133,7 +135,7 @@ def configure(
     default=DEFAULT_BUILDDIR,
     show_default=True,
 )
-@click.option(
+@option(
     "--bobfile",
     "-f",
     "bobfile",
@@ -142,7 +144,7 @@ def configure(
     default=Path("Bobfile"),
     show_default=True,
 )
-@click.option(
+@option(
     "-c",
     "--config",
     "configs",
@@ -150,22 +152,22 @@ def configure(
     help="Supply the given config option.",
     shell_complete=complete_configs,
 )
-@click.option(
+@option(
     "-u",
     "--use-current-configs",
     is_flag=True,
     help="Use the current configs saved from previously configuring.",
 )
-@click.option("--clean", "do_clean", is_flag=True, help="Clean before building.")
-@click.option(
+@option("--clean", "do_clean", is_flag=True, help="Clean before building.")
+@option(
     "--no-compdb", is_flag=True, help="Don't create a compilation DB for this build."
 )
-@click.option(
+@option(
     "--symlink-compdb",
     is_flag=True,
     help="Create a symlink to the compilation DB in the current directory.",
 )
-@click.option(
+@option(
     "-j",
     "--jobs",
     "jobs",
@@ -174,24 +176,24 @@ def configure(
     help="Run this many jobs in parallel (0 means infinity).",
     show_default=True,
 )
-@click.option(
+@option(
     "--no-jobserver",
     is_flag=True,
     help="Don't provide a jobserver.",
 )
-@click.option(
+@option(
     "--no-pretty",
     is_flag=True,
     envvar="BOB_NO_PRETTY",
     help="Print the raw Ninja output rather than pretty printing the build process.",
     show_envvar=True,
 )
-@click.option(
+@option(
     "--allow-build-outside-builddir",
     is_flag=True,
     help="Allow building targets outside of the build directory.",
 )
-@click.argument("targets", shell_complete=complete_targets, nargs=-1)
+@argument("targets", shell_complete=complete_targets, nargs=-1)
 @click.pass_context
 def build(
     ctx: click.Context,
@@ -200,9 +202,9 @@ def build(
     do_clean: bool,
     no_compdb: bool,
     symlink_compdb: bool,
-    configs: Sequence[str],
+    configs: Collection[str],
     use_current_configs: bool,
-    targets: Sequence[str],
+    targets: Collection[str],
     jobs: None | int,
     no_jobserver: bool,
     no_pretty: bool,
@@ -225,12 +227,12 @@ def build(
         no_jobserver=no_jobserver,
         no_pretty=no_pretty,
         allow_build_outside_builddir=allow_build_outside_builddir,
-        extra_ninja_arguments=ctx.meta["unprocessed"],
+        extra_ninja_arguments=cast(list[str], ctx.meta["unprocessed"]),
     )
 
 
 @cli.command
-@click.option(
+@option(
     "-B",
     "--builddir",
     help="The directory to put the Bob outputs in.",
@@ -238,7 +240,7 @@ def build(
     default=DEFAULT_BUILDDIR,
     show_default=True,
 )
-@click.option(
+@option(
     "--force",
     help="Remove the build directory even if it doesn't match a Bob build directory.",
     is_flag=True,
@@ -252,7 +254,7 @@ def clean(builddir: Path, force: bool) -> None:
 
 
 @cli.command
-@click.option(
+@option(
     "-B",
     "--builddir",
     help="The directory to put the Bob outputs in.",
@@ -260,7 +262,7 @@ def clean(builddir: Path, force: bool) -> None:
     default=DEFAULT_BUILDDIR,
     show_default=True,
 )
-@click.option(
+@option(
     "--bobfile",
     "-f",
     "bobfile",
@@ -269,12 +271,12 @@ def clean(builddir: Path, force: bool) -> None:
     default=Path("Bobfile"),
     show_default=True,
 )
-@click.option(
+@option(
     "--dont-symlink",
     help="Don't create a symlink in the current directory.",
     is_flag=True,
 )
-@click.option(
+@option(
     "-c",
     "--config",
     "configs",
@@ -282,25 +284,25 @@ def clean(builddir: Path, force: bool) -> None:
     help="Supply the given config option.",
     shell_complete=complete_configs,
 )
-@click.option(
+@option(
     "--use-current-configs",
     is_flag=True,
     help="Use the current configs saved from previously configuring.",
 )
-@click.argument("targets", shell_complete=complete_targets, nargs=-1)
+@argument("targets", shell_complete=complete_targets, nargs=-1)
 def compdb(
     builddir: Path,
     bobfile: Path,
     dont_symlink: bool,
-    configs: Sequence[str],
+    configs: Collection[str],
     use_current_configs: bool,
-    targets: Sequence[str],
+    targets: Collection[str],
 ) -> None:
     """Create a compilation database for the project."""
 
     from bob.commands.compdb import compdb
 
-    compdb(
+    _ = compdb(
         builddir=builddir,
         bobfile=bobfile,
         dont_symlink=dont_symlink,
@@ -311,7 +313,7 @@ def compdb(
 
 
 @cli.command
-@click.option(
+@option(
     "--shell",
     help="The shell to install completions for.",
     default=Path(os.environ["SHELL"]).name if "SHELL" in os.environ else None,

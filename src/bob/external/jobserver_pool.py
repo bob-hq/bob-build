@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-# Copied from https://raw.githubusercontent.com/ninja-build/ninja/refs/heads/master/misc/jobserver_pool.py
-# type: ignore
-# ruff: noqa
+# Copied without modification from https://raw.githubusercontent.com/ninja-build/ninja/c2817e5854b825b3e7d38ac7a266724ba1313e29/misc/jobserver_pool.py
 
 # Copyright 2024 Google Inc. All Rights Reserved.
 #
@@ -30,9 +28,9 @@ Use the `--no-check` flag to disable this.
 
 See --help-usage for usage examples.
 """
-
 import argparse
 import os
+import platform
 import subprocess
 import sys
 import typing as T
@@ -58,11 +56,12 @@ _DEFAULT_NAME = "jobserver_pool"
 _IS_WINDOWS = sys.platform in ("win32", "cygwin")
 
 if _IS_WINDOWS:
+
     try:
         # This requires pywin32 to be installed.
         import pywintypes
-        import win32api
         import win32event
+        import win32api
     except ModuleNotFoundError:
         print(
             "\nERROR: Could not import Win32 API, please install pywin32, e.g. `python -m pip install pywin32`.\n",
@@ -84,7 +83,7 @@ if _IS_WINDOWS:
         # can be None to indicate default security attributes, but mypy only wants
         # a PySECURITY_ATTRIBUTES for some reason.
         handle = win32event.CreateSemaphore(
-            None,
+            None,  # type: ignore
             jobs_count - 1,
             jobs_count - 1,
             sem_name,
@@ -168,7 +167,7 @@ else:  # !_IS_WINDOWS
             os.remove(path)
 
         # mypy complains that this does not exit on Windows.
-        os.mkfifo(path)
+        os.mkfifo(path)  # type: ignore
 
         read_fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
         write_fd = os.open(path, os.O_WRONLY | os.O_NONBLOCK)

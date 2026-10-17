@@ -51,6 +51,8 @@ def subbob(
     bobfile = _get_bobfile(context, path)
 
     subbob_index = context.variables.get("subbob_index", 1)
+    if not isinstance(subbob_index, int):
+        raise TypeError("The variable 'subbob_index' must be an int")
     context.variables["subbob_index"] = subbob_index + 1
 
     changes = {
@@ -91,7 +93,7 @@ def use(name: str, required: bool = True, default: Any = None) -> Any:
     context = Context.current()
 
     if context.imports is None:
-        raise Exception("Cannot `use` outside of a subbob!")
+        raise RuntimeError("Cannot `use` outside of a subbob!")
 
     if name not in context.imports and not required:
         return default

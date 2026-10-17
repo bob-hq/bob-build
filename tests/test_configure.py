@@ -2,10 +2,10 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
-from utilities import ROOT, assert_modification_time_does_not_change
 
 from bob.commands.configure import configure
 from bob.constants import get_build_ninja_path
+from tests.utilities import ROOT, assert_modification_time_does_not_change
 
 CASES_PATH = ROOT / "tests" / "cases"
 
@@ -37,13 +37,13 @@ def test_ninja_removed_when_configure_fails(bobfile: Path, builddir: Path) -> No
     bobfile.write_text(
         dedent("""
             from bob.prelude import *
-            
+
             Rule("echo hi > $out", description="ECHO").build("hi")
-            raise Exception("configure exception")
-    """)
+            raise RuntimeError("configure exception")
+        """)
     )
 
-    with pytest.raises(Exception, match="configure exception"):
+    with pytest.raises(RuntimeError, match="configure exception"):
         configure(builddir, bobfile)
 
     assert not get_build_ninja_path(builddir).exists()
@@ -53,9 +53,9 @@ def test_configure_lazy(bobfile: Path, builddir: Path) -> None:
     bobfile.write_text(
         dedent("""
             from bob.prelude import *
-            
+
             Rule("echo hi > $out", description="ECHO").build("hi")
-    """)
+        """)
     )
 
     configure(builddir, bobfile, lazy=True)
