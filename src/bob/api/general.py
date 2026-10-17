@@ -1,18 +1,12 @@
-import logging
 from importlib.metadata import version as importlib_version
+from logging import getLogger
 from typing import Literal, overload
 
 from bob.core.context import Context
 
 
 @overload
-def config(
-    name: str, required: Literal[False] = False, default: None = None
-) -> None | str: ...
-
-
-@overload
-def config(name: str, required: bool, default: str) -> str: ...
+def config(name: str, required: Literal[False], default: str) -> str: ...
 
 
 @overload
@@ -20,16 +14,22 @@ def config(name: str, *, default: str) -> str: ...
 
 
 @overload
-def config(name: str, required: Literal[True], default: None = None) -> str: ...
+def config(
+    name: str, required: Literal[False] = False, default: str | None = None
+) -> str | None: ...
 
 
-def config(name: str, required: bool = False, default: None | str = None) -> None | str:
+@overload
+def config(name: str, required: Literal[True]) -> str: ...
+
+
+def config(name: str, required: bool = False, default: str | None = None) -> str | None:
     context = Context.current()
 
     context.used_configs.add(name)
 
     if name not in context.configs and not required:
-        logging.info(f'Unset config "{name}"')
+        getLogger(__name__).info(f'Unset config "{name}"')
         return default
 
     return context.configs[name]
@@ -67,7 +67,9 @@ def bob_required_package_version(
             and (actual_minor != required_minor or actual_patch < required_rest[0])
         )
     ):
-        raise Exception(f"Invalid {package} version: need {version} but have {_actual}")
+        raise ValueError(
+            f"Invalid {package} version: need {version} but have {_actual}"
+        )
 
 
 # TODO: remove bob_version in 0.2

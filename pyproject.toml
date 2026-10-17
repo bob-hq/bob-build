@@ -3,21 +3,21 @@ name = "bob-build"
 version = "0.1.11"
 description = "The ergonomic Ninja-based build system."
 readme = "README.md"
-authors = [{ name = "Noam Zaks", email = "noam@noamzaks.com" }]
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE.md"]
-dependencies = ["ninja>=1.13.0", "rich-click>=1.9.8"]
+authors = [{ name = "Noam Zaks", email = "noam@noamzaks.com" }]
+dependencies = [
+    "ninja>=1.13.2",
+    "rich-click>=1.9.8",
+    "typing-extensions>=4.16.0",
+]
 
 [project.urls]
 Repository = "https://github.com/bob-hq/bob"
 
 [project.scripts]
 bob = "bob:main"
-
-[build-system]
-requires = ["uv_build>=0.8.0,<0.12.0"]
-build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
@@ -28,13 +28,46 @@ dev = [
     "pytest-xdist>=3.8.0",
     "ruff>=0.15.18",
     "ty>=0.0.51",
+    "types-pywin32>=312.0.0.20261006",
 ]
 
-[tool.ruff.lint]
-ignore = ["F403", "F405"]
+[build-system]
+requires = ["uv_build>=0.8.0,<0.12.0"]
+build-backend = "uv_build"
 
 [tool.mypy]
 strict = true
+packages = ["bob", "tests"]
+
+[[tool.mypy.overrides]]
+module = "bob.external.*"
+ignore_errors = true
+
+[tool.pyright]
+typeCheckingMode = "strict"
+venv = ".venv"
+venvPath = "."
+pythonVersion = "3.10"
+exclude = ["src/bob/external/**"]
+reportMissingModuleSource = false
+
+[[tool.pyright.executionEnvironments]]
+root = "tests"
+extraPaths = [".", "src"]
+
+[[tool.pyright.executionEnvironments]]
+root = "."
+
+[tool.ruff]
+extend-exclude = ["src/bob/external/**"]
+force-exclude = true
+
+[tool.ruff.lint]
+ignore = ["F403", "F405"]
+extend-select = ["I"]
+
+[tool.ty.src]
+exclude = ["src/bob/external/**"]
 
 [tool.uv.build-backend]
 module-name = "bob"

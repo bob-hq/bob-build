@@ -2,6 +2,7 @@ import math
 import os
 import subprocess
 import sys
+from typing import IO
 
 from rich.progress import (
     BarColumn,
@@ -39,7 +40,7 @@ NINJA_OUTPUT_BLACKLIST = {
 }
 
 
-def pretty_run_ninja(arguments: list[str]) -> int:
+def pretty_run_ninja(arguments: list[os.PathLike[str] | str]) -> int:
     env = os.environ.copy()
     env["NINJA_STATUS"] = f"%f,%t{PRETTY_SEPARATOR}"
     env["CLICOLOR_FORCE"] = "1"
@@ -48,6 +49,7 @@ def pretty_run_ninja(arguments: list[str]) -> int:
         arguments, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env
     )
     assert p.stdout is not None
+    stdout: IO[bytes] = p.stdout
 
     with Progress(
         SpinnerColumn(),
@@ -59,9 +61,7 @@ def pretty_run_ninja(arguments: list[str]) -> int:
         transient=True,
     ) as progress:
         task_id = progress.add_task("", total=None)
-        while line := p.stdout.readline():
-            assert isinstance(line, bytes)
-
+        while line := stdout.readline():
             try:
                 decoded = line.decode().removeprefix("\n").removesuffix("\n")
             except UnicodeDecodeError:

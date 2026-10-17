@@ -1,6 +1,8 @@
 import abc
 from types import TracebackType
-from typing import Any, Type
+from typing import Any
+
+from typing_extensions import Self
 
 from bob.core.context import Context
 
@@ -14,7 +16,7 @@ class Scope(abc.ABC):
     @abc.abstractmethod
     def _close(self) -> None: ...
 
-    def __enter__(self) -> "Scope":
+    def __enter__(self) -> "Self":
         return self
 
     def close(self) -> None:
@@ -26,7 +28,7 @@ class Scope(abc.ABC):
 
     def __exit__(
         self,
-        exc_type: None | Type[BaseException],
+        exc_type: None | type[BaseException],
         exc: None | BaseException,
         tb: None | TracebackType,
     ) -> None:

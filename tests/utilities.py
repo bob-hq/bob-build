@@ -1,7 +1,7 @@
 import time
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable, Generator
 
 ROOT = Path(__file__).parent.parent.resolve()
 
@@ -22,12 +22,12 @@ def assert_modification_time_change(
 
 
 @contextmanager
-def assert_modification_time_does_not_change(path: Path) -> Generator[None, None, None]:
+def assert_modification_time_does_not_change(path: Path) -> Generator[None]:
     with assert_modification_time_change(path, lambda before, after: before == after):
         yield
 
 
 @contextmanager
-def assert_modification_time_increases(path: Path) -> Generator[None, None, None]:
+def assert_modification_time_increases(path: Path) -> Generator[None]:
     with assert_modification_time_change(path, lambda before, after: before < after):
         yield

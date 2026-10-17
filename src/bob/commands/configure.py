@@ -1,6 +1,7 @@
 import json
+from collections.abc import Collection
 from pathlib import Path
-from typing import Sequence
+from typing import cast
 
 from bob.constants import get_build_ninja_path, get_configs_path
 from bob.core.context import Context
@@ -9,7 +10,7 @@ from bob.core.context import Context
 def configure(
     builddir: Path,
     bobfile: Path,
-    configs: Sequence[str] = (),
+    configs: Collection[str] = (),
     use_current_configs: bool = False,
     lazy: bool = False,
     allow_build_outside_builddir: bool = False,
@@ -20,7 +21,7 @@ def configure(
     if use_current_configs:
         assert len(configs) == 0, "Can't provide configs and use current configs!"
         with open(configs_path, "r") as f:
-            resolved_configs = json.load(f)
+            resolved_configs = cast(dict[str, str], json.load(f))
     else:
         for config in configs:
             key, _, value = config.partition("=")
