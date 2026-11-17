@@ -9,9 +9,15 @@ from bob.core.context import Context
 
 class Scope(abc.ABC):
     def __init__(self) -> None:
+        self._closed = False
+        self._context: Context | None = None
+        self._track()
+
+    def _track(self) -> None:
         context = Context.current()
         if context.track_scopes:
             context.scopes.append(self)
+            self._context = context
 
     @abc.abstractmethod
     def _close(self) -> None: ...
@@ -20,11 +26,14 @@ class Scope(abc.ABC):
         return self
 
     def close(self) -> None:
-        context = Context.current()
-        if self not in context.scopes:
+        if self._closed:
             return
-        context.scopes.remove(self)
+
         self._close()
+        self._closed = True
+
+        if self._context is not None:
+            self._context.scopes.remove(self)
 
     def __exit__(
         self,
@@ -43,9 +52,15 @@ class ScopeStack(Scope):
         super().__init__()
         self.scopes = scopes
 
+    def _track(self) -> None:
+        # Stacks are not tracked by themselves, only their children are.
+        # This is required since temporary stack objects (which are created e.g. in or expressions) aren't closed,
+        # so tracking them would leak them.
+        pass
+
     def _close(self) -> None:
         for scope in reversed(self.scopes):
-            scope._close()
+            scope.close()
 
     def __or__(self, other: "Scope | ScopeStack") -> Scope:
         if isinstance(other, ScopeStack):

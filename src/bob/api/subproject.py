@@ -76,9 +76,9 @@ def subbob(
         context,
         changes,
     ):
-        scopes_before = len(context.scopes)
+        scopes_before = list(context.scopes)
         context.evaluate(bobfile)
-        for scope in reversed(context.scopes[scopes_before:]):
+        for scope in [s for s in reversed(context.scopes) if s not in scopes_before]:
             scope.close()
         return context.exports
 
