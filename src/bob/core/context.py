@@ -1,4 +1,5 @@
 import runpy
+import shlex
 import sys
 from pathlib import Path
 from types import TracebackType
@@ -104,7 +105,12 @@ class Context:
         )
 
         Rule(
-            "FORCE_COLOR=1 $bobbin configure --use-current-configs -f $bobfile",
+            "FORCE_COLOR=1 $bobbin configure --use-current-configs -f $bobfile -B $bobbuilddir"
+            + (
+                " --allow-build-outside-builddir"
+                if self.allow_build_outside_builddir
+                else ""
+            ),
             description="CONFIGURE",
             generator=True,
             pool="console",
@@ -118,8 +124,10 @@ class Context:
                 ),
             ),
             variables={
-                "bobbin": f"{sys.executable} -m bob",
-                "bobfile": str(self.bobfile),
+                "bobbin": f"{shlex.quote(sys.executable)} -m bob",
+                "bobfile": shlex.quote(str(self.bobfile)),
+                # Not `builddir`, which is Ninja's own top-level variable.
+                "bobbuilddir": shlex.quote(str(self.builddir)),
             },
         )
 
