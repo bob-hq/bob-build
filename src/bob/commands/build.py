@@ -79,18 +79,14 @@ def build(
             allow_build_outside_builddir=allow_build_outside_builddir,
         )
 
-        p: subprocess.Popen[bytes] | None = None
-        if not no_compdb:
-            p = compdb(
-                builddir,
-                bobfile,
-                dont_symlink=not symlink_compdb,
-                use_current_configs=True,
-                wait=False,
-                targets=targets,
-            )
-
-        run_ninja(builddir, targets, no_pretty, extra_ninja_arguments)
-
-        if p is not None:
-            assert p.wait() == 0
+        try:
+            run_ninja(builddir, targets, no_pretty, extra_ninja_arguments)
+        finally:
+            if not no_compdb and get_build_ninja_path(builddir).exists():
+                compdb(
+                    builddir,
+                    bobfile,
+                    dont_symlink=not symlink_compdb,
+                    use_current_configs=True,
+                    targets=targets,
+                )
