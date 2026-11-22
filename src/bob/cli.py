@@ -302,7 +302,7 @@ def compdb(
 
     from bob.commands.compdb import compdb
 
-    _ = compdb(
+    compdb(
         builddir=builddir,
         bobfile=bobfile,
         dont_symlink=dont_symlink,

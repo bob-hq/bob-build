@@ -1,4 +1,5 @@
 import subprocess
+import sys
 from collections.abc import Collection
 from pathlib import Path
 
@@ -14,9 +15,8 @@ def compdb(
     dont_symlink: bool,
     configs: Collection[str] = (),
     use_current_configs: bool = False,
-    wait: bool = True,
     targets: Collection[str] = (),
-) -> subprocess.Popen[bytes]:
+) -> None:
     build_compdb_path = builddir / COMPDB_PATH
 
     configure(builddir, bobfile, configs, use_current_configs, lazy=True)
@@ -24,8 +24,11 @@ def compdb(
     ninja_args = (
         ["-t", "compdb"] if len(targets) == 0 else ["-t", "compdb-targets", *targets]
     )
-    with build_compdb_path.open("w") as f:
-        p = subprocess.Popen(
+
+    # Write to a separate file so that a failure keeps the previous database.
+    new_compdb_path = build_compdb_path.with_name(build_compdb_path.name + ".new")
+    with new_compdb_path.open("w") as f:
+        returncode = subprocess.run(
             [
                 Path(NINJA_BIN_DIR) / "ninja",
                 "-f",
@@ -33,13 +36,15 @@ def compdb(
                 *ninja_args,
             ],
             stdout=f,
-        )
+            check=False,
+        ).returncode
 
-        if not dont_symlink:
-            COMPDB_PATH.unlink(missing_ok=True)
-            COMPDB_PATH.symlink_to(build_compdb_path)
+    if returncode != 0:
+        new_compdb_path.unlink()
+        sys.exit(returncode)
 
-        if wait:
-            assert p.wait() == 0
+    new_compdb_path.replace(build_compdb_path)
 
-        return p
+    if not dont_symlink:
+        COMPDB_PATH.unlink(missing_ok=True)
+        COMPDB_PATH.symlink_to(build_compdb_path)
