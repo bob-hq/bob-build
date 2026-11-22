@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Literal, overload
 
@@ -31,8 +32,7 @@ def srcdir() -> Path:
 
 
 def rootdir() -> Path:
-    src = srcdir()
-    return Path(*([".."] * len(src.parts)))
+    return Path(os.path.relpath(".", srcdir()))
 
 
 @overload
