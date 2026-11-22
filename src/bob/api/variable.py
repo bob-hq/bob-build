@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Any
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, overload
 
 from bob.api.scope import DictionaryScope, Scope, ScopeStack
 
@@ -13,10 +14,11 @@ NINJA_SPECIAL_VARIABLES = {
     "depfile",
     "deps",
     "msvc_deps_prefix",
-    "descrption",
+    "description",
     "dyndep",
     "generator",
     "in_newline",
+    "pool",
     "restat",
     "rspfile",
     "rspfile_content",
@@ -43,8 +45,29 @@ class Variable:
             [DictionaryScope(rule.variables, {self.name: value}) for rule in self.rules]
         )
 
-    def add(self, value: Any) -> Scope:
-        value = self.get() + value
-        return ScopeStack(
-            [DictionaryScope(rule.variables, {self.name: value}) for rule in self.rules]
-        )
+    @overload
+    def add(self, value: str) -> Scope: ...
+
+    @overload
+    def add(self, value: "Sequence[RuleInput.Type]") -> Scope: ...
+
+    def add(self, value: "str | Sequence[RuleInput.Type]") -> Scope:
+        current = self.get()
+
+        combined: RuleInput.Multiple
+        if isinstance(current, str) and isinstance(value, str):
+            combined = current + value
+        elif (
+            isinstance(current, Sequence)
+            and not isinstance(current, str)
+            and not isinstance(value, str)
+            # Not redundant: untyped callers can pass anything, e.g. a single `Path`.
+            and isinstance(value, Sequence)  # pyright: ignore[reportUnnecessaryIsInstance]
+        ):
+            combined = [*current, *value]
+        else:
+            raise TypeError(
+                f'Cannot add {value!r} to variable "{self.name}" whose value is {current!r}'
+            )
+
+        return self.set(combined)

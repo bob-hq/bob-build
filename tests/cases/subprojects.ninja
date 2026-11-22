@@ -23,11 +23,11 @@ build build/should-have-fun-more: bob-3
   variable = fun more
 build $root/tests/cases/subprojects.bob $root/tests/cases/utilities/included.bob $root/tests/cases/utilities/subbobbed.bob build/bob/configs.json: phony
 rule configure-bob-4
-  command = FORCE_COLOR=1 $bobbin configure --use-current-configs -f $bobfile
+  command = FORCE_COLOR=1 $bobbin configure --use-current-configs $bobargs
   description = CONFIGURE $out
   generator = 1
   pool = console
 
 build build/bob/build.ninja: configure-bob-4 | $root/tests/cases/subprojects.bob $root/tests/cases/utilities/included.bob $root/tests/cases/utilities/subbobbed.bob build/bob/configs.json
   bobbin = $root/.venv/bin/python -m bob
-  bobfile = $root/tests/cases/subprojects.bob
+  bobargs = --builddir=build --bobfile=$root/tests/cases/subprojects.bob

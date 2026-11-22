@@ -13,11 +13,11 @@ build build/resolve-src: bob-1 $root/tests/cases/inside/deep/in-deep $root/tests
 build build/resolve-src-outside: bob-1 $root/tests/cases/outside
 build $root/tests/cases/paths.bob build/bob/configs.json: phony
 rule configure-bob-2
-  command = FORCE_COLOR=1 $bobbin configure --use-current-configs -f $bobfile
+  command = FORCE_COLOR=1 $bobbin configure --use-current-configs $bobargs
   description = CONFIGURE $out
   generator = 1
   pool = console
 
 build build/bob/build.ninja: configure-bob-2 | $root/tests/cases/paths.bob build/bob/configs.json
   bobbin = $root/.venv/bin/python -m bob
-  bobfile = $root/tests/cases/paths.bob
+  bobargs = --builddir=build --bobfile=$root/tests/cases/paths.bob

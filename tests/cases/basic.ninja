@@ -8,18 +8,18 @@ rule bob-1
 build build/hi: bob-1
 build hola: phony build/hi
 rule shell-bob-2
-  command = ((cat magic) > $out.new && cmp -s $out $out.new || mv $out.new $out); rm -f $out.new
+  command = (cat magic) > $out.new && { cmp -s -- $out $out.new || mv -f -- $out.new $out; }; status=$$?; rm -f -- $out.new; exit $$status
   description = SHELL $out
   restat = 1
 
 build build/magic: shell-bob-2 | build/bob/always
 build $root/tests/cases/basic.bob build/bob/configs.json: phony
 rule configure-bob-3
-  command = FORCE_COLOR=1 $bobbin configure --use-current-configs -f $bobfile
+  command = FORCE_COLOR=1 $bobbin configure --use-current-configs $bobargs
   description = CONFIGURE $out
   generator = 1
   pool = console
 
 build build/bob/build.ninja: configure-bob-3 | $root/tests/cases/basic.bob build/bob/configs.json
   bobbin = $root/.venv/bin/python -m bob
-  bobfile = $root/tests/cases/basic.bob
+  bobargs = --builddir=build --bobfile=$root/tests/cases/basic.bob

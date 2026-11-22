@@ -1,45 +1,15 @@
 import os
-import subprocess
 import sys
-from collections.abc import Collection, Iterable
+from collections.abc import Collection
 from contextlib import AbstractContextManager, nullcontext
 from pathlib import Path
 
-from ninja import BIN_DIR as NINJA_BIN_DIR
-
 from bob.commands.clean import clean
-from bob.commands.compdb import compdb
+from bob.commands.compdb import CompdbError, compdb
 from bob.commands.configure import configure
 from bob.constants import get_build_ninja_path
 from bob.jobserver import jobserver
-from bob.pretty import pretty_run_ninja
-
-
-def run_ninja(
-    builddir: Path,
-    targets: Iterable[os.PathLike[str] | str] = (),
-    no_pretty: bool = False,
-    extra_ninja_arguments: None | list[str] = None,
-) -> None:
-    arguments: list[os.PathLike[str] | str] = [
-        Path(NINJA_BIN_DIR) / "ninja",
-        "-f",
-        str(get_build_ninja_path(builddir)),
-    ]
-
-    if extra_ninja_arguments is not None:
-        arguments.extend(extra_ninja_arguments)
-
-    arguments.extend(targets)
-
-    returncode = (
-        subprocess.run(arguments, check=False).returncode
-        if no_pretty
-        else pretty_run_ninja(arguments)
-    )
-
-    if returncode != 0:
-        sys.exit(returncode)
+from bob.ninja_runner import run_ninja
 
 
 def build(
@@ -58,13 +28,17 @@ def build(
     extra_ninja_arguments: None | list[str] = None,
 ) -> None:
     if jobs is None:
-        jobs = os.cpu_count()
+        jobs = os.cpu_count() or 1
 
-    context: AbstractContextManager[None] = nullcontext()
+    if jobs < 0:
+        raise ValueError("The number of jobs must not be negative!")
 
-    if not no_jobserver:
-        assert jobs is not None
-        context = jobserver(jobs)
+    # A jobserver can't express "unlimited" (0 jobs), so leave that to Ninja itself.
+    use_jobserver = not no_jobserver and jobs > 0
+
+    context: AbstractContextManager[None] = (
+        jobserver(jobs) if use_jobserver else nullcontext()
+    )
 
     with context:
         if do_clean:
@@ -79,18 +53,32 @@ def build(
             allow_build_outside_builddir=allow_build_outside_builddir,
         )
 
-        p: subprocess.Popen[bytes] | None = None
-        if not no_compdb:
-            p = compdb(
-                builddir,
-                bobfile,
-                dont_symlink=not symlink_compdb,
-                use_current_configs=True,
-                wait=False,
-                targets=targets,
-            )
+        returncode = run_ninja(
+            builddir,
+            targets,
+            no_pretty,
+            extra_ninja_arguments,
+            # With a jobserver, Ninja takes its job slots from it.
+            jobs=None if use_jobserver else jobs,
+        )
 
-        run_ninja(builddir, targets, no_pretty, extra_ninja_arguments)
+        # Ninja may have reconfigured (regenerating `compdb.ninja`), so only create the compilation
+        # DB afterwards. Do so even if the build failed, unless reconfiguring itself failed.
+        if not no_compdb and get_build_ninja_path(builddir).exists():
+            try:
+                compdb(
+                    builddir,
+                    bobfile,
+                    dont_symlink=not symlink_compdb,
+                    use_current_configs=True,
+                    targets=targets,
+                    regenerate=False,
+                )
+            except CompdbError:
+                # When the build failed, the compilation DB is best effort: it fails for the same
+                # reason (e.g. an unknown target), which Ninja has already reported.
+                if returncode == 0:
+                    raise
 
-        if p is not None:
-            assert p.wait() == 0
+    if returncode != 0:
+        sys.exit(returncode)

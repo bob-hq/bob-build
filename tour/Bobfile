@@ -22,7 +22,9 @@ r = Rule(
 fun: FileTarget = r.build("fun.txt", inputs=["in.txt"], variables={"something": "hi"})
 
 # You can scope variable values with `set` or add to them with `add`.
-# Variables are automatically shell-escaped.
+# Lists, paths and targets are automatically shell-escaped, while a single string is inserted as-is so it can hold
+# several arguments. Ninja shell-escapes $in and $out itself. Escaping can't stop a path starting with `-` from being
+# taken as a flag though, so use `--` in your commands where the tools support it.
 with r["something"].set(["sheesh"]), Variable("something", r).add(["so $cool"]):
     # You can pass targets, strings, and paths as a type of `RuleInput`.
     # Strings and paths are resolved relative to the srcdir.
@@ -43,6 +45,12 @@ phony("fun-and-another", [fun, another])
 # This also checks the return code, unless you pass check=False, and decodes, unless you pass text=False.
 shell(
     "find src -name '*.c' -exec clang-format --dry-run --Werror {} +",
+)
+
+# Use `run` to run a program directly rather than through a shell, so its arguments never need quoting.
+# It runs in the srcdir by default (pass `cwd` to change that), and strips its output unless you pass strip=False.
+assert run(["echo", "$HOME isn't expanded; nothing here is special!"]) == (
+    "$HOME isn't expanded; nothing here is special!"
 )
 
 

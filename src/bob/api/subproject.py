@@ -1,5 +1,6 @@
 import inspect
 import runpy
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +20,20 @@ def _get_bobfile(context: Context, path: str | Path) -> Path:
     return bobfile
 
 
+_MODULE_METADATA = frozenset(
+    {
+        "__builtins__",
+        "__cached__",
+        "__doc__",
+        "__file__",
+        "__loader__",
+        "__name__",
+        "__package__",
+        "__spec__",
+    }
+)
+
+
 def include(path: str | Path) -> None:
     context = Context.current()
     bobfile = _get_bobfile(context, path)
@@ -31,15 +46,18 @@ def include(path: str | Path) -> None:
     assert caller is not None
 
     with AttributeScope(context, {"current_src_subdir": bobfile.parent}):
-        caller.f_globals.update(
-            runpy.run_path(str(bobfile), caller.f_globals | caller.f_locals)
-        )
+        result = runpy.run_path(str(bobfile), caller.f_globals | caller.f_locals)
+
+    # Don't let the included file's module metadata (e.g. `__file__`) replace the includer's.
+    caller.f_globals.update(
+        (key, value) for key, value in result.items() if key not in _MODULE_METADATA
+    )
 
 
 # TODO: change `imports` to not be kwargs (to avoid breakages/confusion with regard to other parameters) in 0.2
 def subbob(
     path: str | Path,
-    configs: None | dict[str, str] = None,
+    configs: None | Mapping[str, str] = None,
     unique_builddir: bool = True,
     **imports: Any,
 ) -> dict[str, Any]:
@@ -50,16 +68,13 @@ def subbob(
 
     bobfile = _get_bobfile(context, path)
 
-    subbob_index = context.variables.get("subbob_index", 1)
-    if not isinstance(subbob_index, int):
-        raise TypeError("The variable 'subbob_index' must be an int")
-    context.variables["subbob_index"] = subbob_index + 1
+    subbob_index = context.next_index("subbob")
 
     changes = {
         "current_src_subdir": bobfile.parent,
         "imports": imports,
         "exports": {},
-        "configs": configs,
+        "configs": dict(configs),
     }
 
     if unique_builddir:

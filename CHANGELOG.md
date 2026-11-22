@@ -6,6 +6,56 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+
+## Added
+
+- `run`, which is like `shell` but runs a program with a list of arguments rather than a shell command line, so arguments never need quoting. It runs in the srcdir by default and strips its output by default.
+
+## Fixed
+
+- Escaping throughout Bob's generated commands and Ninja files, so paths with spaces, quotes, `$` or a leading `-` work:
+  - Paths in the Ninja file starting with `$name` are no longer expanded as Ninja variables, and paths with newlines are rejected.
+  - A single `Path` or target as a variable's value is now shell-quoted, like the elements of a list.
+  - Bob's own commands pass `--` before operands (`cmp`, `mv`, `rm`, `sh -c`, and targets passed to Ninja) and attach option values with `=`.
+  - Ninja's `builddir` (where it keeps its log) is escaped.
+- `shell` commands can now contain `$` (e.g. `shell("echo $HOME")`). Previously Ninja interpreted it, so such commands either failed to configure or reconfigured forever.
+- Reconfiguring now respects `--builddir` (and `--allow-build-outside-builddir`); previously editing a Bobfile broke builds in any non-default build directory. Build directories configured by older versions must be cleaned once.
+- Using a Bobfile outside the current directory (e.g. `bob build -f sub/Bobfile`) no longer loops reconfiguring forever.
+- `shell_output_rule` commands that fail now fail the build, and `shell(..., check=False)` with a failing command no longer reconfigures forever.
+- `-j` is now passed to Ninja when not using a jobserver, `-j 0` (unlimited jobs) works, and a negative `-j` is rejected.
+- `compile_commands.json` is created after Ninja reconfigures, so it's no longer one build behind; `bob compdb` reconfigures if needed.
+- A failing `bob compdb` reports Ninja's error and keeps the previous `compile_commands.json`.
+- Building with an `always` rule no longer appends to the caller's `implicit` list, and a `Rule` no longer shares the `implicit`, `order_only` and `implicit_outputs` lists passed to it.
+- Variables passed to `ScopedRule.build` take precedence over scoped variables, and the caller's dictionary is no longer mutated.
+- `description` and `pool` are rejected as variable names, like the other special Ninja variables.
+- Rule descriptions with non-ASCII letters (e.g. `ÜBERSETZEN`) no longer produce invalid Ninja rule names.
+- `rootdir()` is now correct for srcdirs outside of the root or given as absolute paths.
+- `include` no longer overwrites the includer's `__file__` and other module metadata.
+- The jobserver restores a pre-existing `MAKEFLAGS` rather than deleting it.
+- Pretty printing now shows failures of `shell` commands, and handles very narrow terminals.
+- With `-B .`, pretty printing no longer shows the progress of `shell` and `run` commands, and tab completion no longer offers Bob's internal targets.
+- `rootdir()` no longer fails on Windows when the srcdir is on another drive; it's absolute instead.
+- `shell` and `run` commands whose output depends on `FORCE_COLOR` or `CLICOLOR_FORCE` no longer reconfigure forever. Bob sets these for its own output, so captured commands no longer see them, nor `NINJA_STATUS`.
+- Version checks accept versions such as `0.2.0.dev1`. A pre-release doesn't satisfy a requirement of the version it precedes (`0.2.0.dev1` doesn't satisfy `0.2.0`).
+- Clearer errors for malformed `-c` configs, missing required configs, `--use-current-configs` before configuring, and rules of the wrong kind set on a `ScopedRule`.
+- `bob completions fish` works when Bob's path contains spaces.
+- The tour's `Makefile` is now committed, and the README's `bob compdb` example uses the current subbob build directory.
+
+## Changed
+
+- **Breaking:** `-c KEY` without `=` is now an error rather than setting `KEY` to an empty string. Use `-c KEY=` for an empty value.
+- Rule inputs, implicit dependencies, implicit outputs, variables and `subbob` configs now accept any `Sequence`/`Mapping`, so e.g. a `list[FileTarget]` or the result of `glob` type-checks as inputs. A single string (e.g. `inputs="main.c"`) raises a `TypeError` rather than being split into characters.
+- `ScopedValue.get()` is typed as returning the value (not `None`) when required, and `default` is only accepted with `required=False`.
+- `Variable.add` is now typed, and raises a `TypeError` when adding a list to a string variable or vice versa.
+- `shell_output_rule` accepts `check`.
+- `shell` now reruns its command on every build through Bob itself (`python -m bob._capture`) rather than through a shell pipeline, so the configure-time and build-time runs are identical. The command's standard error is now shown while configuring.
+
+## Deprecated
+
+- `Context.variables` and `Context.srcdir`, which Bob no longer uses. They will be removed in 0.2. Bob's own counters (`rule_index`, `shell_index` and `subbob_index`) are no longer kept in `Context.variables`.
+
+
 ## [0.1.13] - 2026-11-21
 
 https://github.com/bob-hq/bob/compare/v0.1.12...v0.1.13
