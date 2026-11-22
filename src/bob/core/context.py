@@ -88,6 +88,8 @@ class Context:
     ) -> None:
         from bob.api.rule import Rule, RuleInput
 
+        self.current_src_subdir = Path(".")
+
         assert self.writer is not None
         self.writer.build(
             sorted(
