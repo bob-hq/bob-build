@@ -1,3 +1,4 @@
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Generic, Literal, TypeVar, overload
 
@@ -12,16 +13,15 @@ class ScopedValue(Generic[T]):
     def __init__(self, value: None | T = None) -> None:
         self.value = value
 
+    # `default` is only meaningful when the value isn't required.
     @overload
-    def get(
-        self, required: Literal[False] = False, default: None = None
-    ) -> None | T: ...
+    def get(self, required: Literal[True] = True) -> T: ...
 
     @overload
-    def get(self, required: Literal[False] = False, default: T = ...) -> T: ...
+    def get(self, required: Literal[False]) -> None | T: ...
 
     @overload
-    def get(self, required: Literal[True] = True, default: None | T = None) -> T: ...
+    def get(self, required: Literal[False], default: T) -> T: ...
 
     def get(self, required: bool = True, default: None | T = None) -> None | T:
         if self.value is None:
@@ -58,10 +58,12 @@ class ScopedRule(ScopedValue[Rule[OutputType]], Generic[OutputType]):
         if value.single_input != self.single_input:
             raise ValueError(
                 "Invalid rule provided: expected a rule which accepts a single input!"
+                if self.single_input
+                else "Invalid rule provided: expected a rule which accepts multiple inputs!"
             )
         if value.single_output != self.single_output:
             raise ValueError(
-                "Invalid rule provided: expected a rule which accepts a single input!"
+                "Invalid rule provided: expected a rule which produces a single output!"
             )
 
         return super().set(value)
@@ -69,24 +71,24 @@ class ScopedRule(ScopedValue[Rule[OutputType]], Generic[OutputType]):
     def build(
         self,
         *outputs: str | Path,
-        inputs: None | list[RuleInput.Type] = None,
-        implicit: None | list[RuleInput.Type] = None,
-        order_only: None | list[RuleInput.Type] = None,
-        implicit_outputs: None | list[str | Path] = None,
+        inputs: None | Sequence[RuleInput.Type] = None,
+        implicit: None | Sequence[RuleInput.Type] = None,
+        order_only: None | Sequence[RuleInput.Type] = None,
+        implicit_outputs: None | Sequence[str | Path] = None,
         pool: None | str = None,
         dyndep: None | str = None,
-        variables: None | dict[str, RuleInput.Multiple] = None,
+        variables: None | Mapping[str, RuleInput.Multiple] = None,
     ) -> OutputType:
-        assert self.value is not None
+        rule = self.get()
 
-        if variables is None:
-            variables = {}
+        # Variables passed explicitly to `build` take precedence over the scoped ones.
+        merged_variables = {
+            key: value
+            for key, value in self.variables.items()
+            if key in rule.variable_names
+        } | dict(variables or {})
 
-        for key, value in self.variables.items():
-            if key in self.value.variable_names:
-                variables[key] = value
-
-        return self.value.build(
+        return rule.build(
             *outputs,
             inputs=inputs,
             implicit=implicit,
@@ -94,7 +96,7 @@ class ScopedRule(ScopedValue[Rule[OutputType]], Generic[OutputType]):
             implicit_outputs=implicit_outputs,
             pool=pool,
             dyndep=dyndep,
-            variables=variables,
+            variables=merged_variables,
         )
 
     def __getitem__(self, name: str) -> Variable:

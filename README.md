@@ -49,8 +49,8 @@ bob build -c DEBUG=y --builddir build-debug
 bob build --clean -j 4 -- -v
 # Create a compile_commands.json with the given configs.
 bob compdb -c DEBUG=n
-# Create a compile_commands.json only including `build/.subbob-2-src/basic` and its dependencies.
-bob compdb build/.subbob-2-src/basic
+# Create a compile_commands.json only including `build/bob/subbob-2-src/basic` and its dependencies.
+bob compdb build/bob/subbob-2-src/basic
 ```
 
 Try these out in the tour!

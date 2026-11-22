@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 import sys
@@ -18,10 +19,10 @@ def completions(shell: str) -> None:
                 Path.home() / ".config" / "fish" / "completions" / "bob.fish"
             )
             completions_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(completions_path, "w") as f:
-                subprocess.check_call(
-                    f"_BOB_COMPLETE={shell}_source {bob}", stdout=f, shell=True
-                )
+            completion_script = subprocess.check_output(
+                [bob], env={**os.environ, "_BOB_COMPLETE": f"{shell}_source"}
+            )
+            completions_path.write_bytes(completion_script)
             console.print(f"Completion script written to {completions_path}")
         case _:
             raise NotImplementedError(f'Completions are not supported for "{shell}"')

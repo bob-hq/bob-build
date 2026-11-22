@@ -6,6 +6,7 @@ from bob.api.rule import (
     Rule,
     RuleInput,
     phony,
+    run,
     shell,
     shell_output_rule,
 )
@@ -37,6 +38,7 @@ __all__ = [
     "plugin_scope",
     "read",
     "rootdir",
+    "run",
     "shell",
     "shell_output_rule",
     "src_in",

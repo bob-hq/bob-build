@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import cast
 
 import rich_click as click
-from ninja import BIN_DIR as NINJA_BIN_DIR
 
 from bob.constants import (
     BOB_BUILDDIR_SUBDIRECTORY,
@@ -21,9 +20,11 @@ def complete_targets(
 ) -> list[str]:
     builddir = cast(Path, ctx.params.get("builddir", DEFAULT_BUILDDIR))
 
+    from bob.ninja_runner import NINJA_PATH
+
     p = subprocess.run(
         [
-            Path(NINJA_BIN_DIR) / "ninja",
+            NINJA_PATH,
             "-f",
             get_build_ninja_path(builddir),
             "-t",
@@ -37,11 +38,15 @@ def complete_targets(
     if p.returncode != 0:
         return []
 
+    # Ninja prints `<target>: <rule>`; targets may contain `:` themselves (e.g. `C:\...`).
+    targets = [line.rpartition(b": ")[0].decode() for line in p.stdout.splitlines()]
+    # Absolute, in case `--builddir` is spelled differently than when Bob configured it.
+    internal_directory = Path(os.path.abspath(builddir / BOB_BUILDDIR_SUBDIRECTORY))
     return [
-        line.partition(b":")[0].decode()
-        for line in p.stdout.splitlines()
-        if line.startswith(incomplete.encode())
-        and f"/{BOB_BUILDDIR_SUBDIRECTORY}/".encode() not in line
+        target
+        for target in targets
+        if target.startswith(incomplete)
+        and internal_directory not in Path(os.path.abspath(target)).parents
     ]
 
 
@@ -171,7 +176,7 @@ def configure(
     "-j",
     "--jobs",
     "jobs",
-    type=int,
+    type=click.IntRange(min=0),
     default=os.cpu_count(),
     help="Run this many jobs in parallel (0 means infinity).",
     show_default=True,
@@ -302,7 +307,7 @@ def compdb(
 
     from bob.commands.compdb import compdb
 
-    _ = compdb(
+    compdb(
         builddir=builddir,
         bobfile=bobfile,
         dont_symlink=dont_symlink,

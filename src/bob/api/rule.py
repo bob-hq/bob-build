@@ -1,7 +1,7 @@
 import os
 import shlex
-import subprocess
 import sys
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Generic, Literal, TypeAlias, TypeVar, cast, overload
@@ -12,6 +12,7 @@ from bob.constants import BOB_BUILDDIR_SUBDIRECTORY
 from bob.core.context import Context
 from bob.external.ninja_syntax import escape as ninja_escape
 from bob.utilities.fills import Template
+from bob.utilities.quoting import quote_args
 
 
 @dataclass(frozen=True)
@@ -24,9 +25,17 @@ class PhonyTarget:
     name: str
 
 
+def _reject_strings(**arguments: object) -> None:
+    # `str` is a `Sequence[str]`, so type checkers accept e.g. `inputs="main.c"`, which would
+    # otherwise be split into one input per character.
+    for name, value in arguments.items():
+        if isinstance(value, (str, bytes)):
+            raise TypeError(f"`{name}` takes a list, not a single string: {value!r}")
+
+
 class RuleInput:
     Type: TypeAlias = str | Path | FileTarget | PhonyTarget
-    Multiple: TypeAlias = Type | list[Type]
+    Multiple: TypeAlias = Type | Sequence[Type]
 
     def __init__(self) -> None:
         raise NotImplementedError("RuleInput is a utility namespace")
@@ -189,10 +198,10 @@ class Rule(Generic[OutputType]):
         compile_command: None | str = None,
         single_input: bool = False,
         single_output: Literal[True] = True,
-        variables: None | dict[str, RuleInput.Multiple] = None,
-        implicit: None | list[RuleInput.Type] = None,
-        order_only: None | list[RuleInput.Type] = None,
-        implicit_outputs: None | list[str | Path] = None,
+        variables: None | Mapping[str, RuleInput.Multiple] = None,
+        implicit: None | Sequence[RuleInput.Type] = None,
+        order_only: None | Sequence[RuleInput.Type] = None,
+        implicit_outputs: None | Sequence[str | Path] = None,
         rspfile: None | str = None,
         rspfile_content: None | str = None,
     ) -> None: ...
@@ -212,10 +221,10 @@ class Rule(Generic[OutputType]):
         compile_command: None | str = None,
         single_input: bool = False,
         single_output: Literal[False],
-        variables: None | dict[str, RuleInput.Multiple] = None,
-        implicit: None | list[RuleInput.Type] = None,
-        order_only: None | list[RuleInput.Type] = None,
-        implicit_outputs: None | list[str | Path] = None,
+        variables: None | Mapping[str, RuleInput.Multiple] = None,
+        implicit: None | Sequence[RuleInput.Type] = None,
+        order_only: None | Sequence[RuleInput.Type] = None,
+        implicit_outputs: None | Sequence[str | Path] = None,
         rspfile: None | str = None,
         rspfile_content: None | str = None,
     ) -> None: ...
@@ -234,23 +243,29 @@ class Rule(Generic[OutputType]):
         compile_command: None | str = None,
         single_input: bool = False,
         single_output: bool = True,
-        variables: None | dict[str, RuleInput.Multiple] = None,
-        implicit: None | list[RuleInput.Type] = None,
-        order_only: None | list[RuleInput.Type] = None,
-        implicit_outputs: None | list[str | Path] = None,
+        variables: None | Mapping[str, RuleInput.Multiple] = None,
+        implicit: None | Sequence[RuleInput.Type] = None,
+        order_only: None | Sequence[RuleInput.Type] = None,
+        implicit_outputs: None | Sequence[str | Path] = None,
         rspfile: None | str = None,
         rspfile_content: None | str = None,
     ):
         from bob.api.scoped_value import ScopedValue
 
+        _reject_strings(
+            implicit=implicit, order_only=order_only, implicit_outputs=implicit_outputs
+        )
+
         context = Context.current()
 
-        rule_index = context.variables.get("rule_index", 1)
-        context.variables["rule_index"] = rule_index + 1
-
-        name = f"bob-{rule_index}"
+        name = f"bob-{context.next_index('rule')}"
         if description is not None:
-            name = "".join(c for c in description.lower() if c.isalnum()) + "-" + name
+            # Ninja rule names may only contain ASCII letters, digits, `_`, `.` and `-`.
+            name = (
+                "".join(c for c in description.lower() if c.isascii() and c.isalnum())
+                + "-"
+                + name
+            )
             description += " $out"
 
         if variables is None:
@@ -297,9 +312,15 @@ class Rule(Generic[OutputType]):
         self.single_input = single_input
         self.single_output = single_output
         self.always = always
-        self.implicit = ScopedValue(implicit or [])
-        self.order_only = ScopedValue(order_only or [])
-        self.implicit_outputs = ScopedValue(implicit_outputs or [])
+        self.implicit: ScopedValue[list[RuleInput.Type]] = ScopedValue(
+            list(implicit or [])
+        )
+        self.order_only: ScopedValue[list[RuleInput.Type]] = ScopedValue(
+            list(order_only or [])
+        )
+        self.implicit_outputs: ScopedValue[list[str | Path]] = ScopedValue(
+            list(implicit_outputs or [])
+        )
         self.has_rspfile = rspfile is not None
 
         for key, value in variables.items():
@@ -329,14 +350,21 @@ class Rule(Generic[OutputType]):
     def build(
         self,
         *outputs: str | Path,
-        inputs: None | list[RuleInput.Type] = None,
-        implicit: None | list[RuleInput.Type] = None,
-        order_only: None | list[RuleInput.Type] = None,
-        implicit_outputs: None | list[str | Path] = None,
+        inputs: None | Sequence[RuleInput.Type] = None,
+        implicit: None | Sequence[RuleInput.Type] = None,
+        order_only: None | Sequence[RuleInput.Type] = None,
+        implicit_outputs: None | Sequence[str | Path] = None,
         pool: None | str = None,
         dyndep: None | str = None,
-        variables: None | dict[str, RuleInput.Multiple] = None,
+        variables: None | Mapping[str, RuleInput.Multiple] = None,
     ) -> OutputType:
+        _reject_strings(
+            inputs=inputs,
+            implicit=implicit,
+            order_only=order_only,
+            implicit_outputs=implicit_outputs,
+        )
+
         if variables is None:
             variables = {}
 
@@ -401,33 +429,13 @@ class Rule(Generic[OutputType]):
                         )
 
             resolved_variables: dict[str, str | list[str] | None] = {
-                key: shlex.join(
-                    ninja_escape(
-                        RuleInput.resolve(
-                            v,
-                            srcdir_relative_paths=False,
-                            convert_strings_to_paths=False,
-                            convert_to_string=True,
-                        )
-                    )
-                    for v in value
-                )
-                if not isinstance(value, RuleInput.Type)
-                else ninja_escape(
-                    RuleInput.resolve(
-                        value,
-                        srcdir_relative_paths=False,
-                        convert_strings_to_paths=False,
-                        convert_to_string=True,
-                    )
-                )
-                for key, value in self.variables.items()
+                key: _variable_value(value) for key, value in self.variables.items()
             }
 
             if self.always:
-                implicit = implicit or []
                 assert context.always is not None
-                implicit.append(context.always)
+                # Don't mutate the caller's list.
+                implicit = [*(implicit or []), context.always]
 
             resolved_inputs = (
                 RuleInput.resolve(
@@ -518,7 +526,32 @@ class Rule(Generic[OutputType]):
                 )
 
 
-def phony(name: str, inputs: None | list[RuleInput.Type] = None) -> PhonyTarget:
+def _variable_value(value: RuleInput.Multiple) -> str:
+    """Render a variable's value for a Ninja command."""
+
+    if isinstance(value, str):
+        # A single string is inserted as-is, so that it can hold several arguments.
+        return ninja_escape(value)
+
+    # Anything else is a single argument (e.g. a path) or a list of arguments, so quote each one.
+    values = [value] if isinstance(value, RuleInput.Type) else value
+    return ninja_escape(
+        quote_args(
+            [
+                RuleInput.resolve(
+                    v,
+                    srcdir_relative_paths=False,
+                    convert_strings_to_paths=False,
+                    convert_to_string=True,
+                )
+                for v in values
+            ]
+        )
+    )
+
+
+def phony(name: str, inputs: None | Sequence[RuleInput.Type] = None) -> PhonyTarget:
+    _reject_strings(inputs=inputs)
     context = Context.current()
 
     resolved_inputs = (
@@ -546,16 +579,118 @@ def phony(name: str, inputs: None | list[RuleInput.Type] = None) -> PhonyTarget:
 
 
 def shell_output_rule(
-    command: str, pool: None | str = None, single_input: bool = False
+    command: str,
+    pool: None | str = None,
+    single_input: bool = False,
+    check: bool = True,
 ) -> Rule[FileTarget]:
+    """
+    Always run `command` and store its output, touching the output only when it changed.
+
+    Unless `check` is False, a failing `command` fails the build.
+    """
+
+    run = f"({command}) > $out.new"
+    if not check:
+        run = f"{{ {run}; true; }}"
+
     return Rule(
-        command=f"(({command}) > $out.new && cmp -s $out $out.new || mv $out.new $out); rm -f $out.new",
+        # Ninja shell-quotes `$out` itself (`$out.new` then concatenates); `--` keeps paths from
+        # being taken as flags.
+        command=f"{run} && {{ cmp -s -- $out $out.new || mv -f -- $out.new $out; }}; status=$$?; rm -f -- $out.new; exit $$status",
         description="SHELL",
         restat=True,
         pool=pool,
         always=True,
         single_input=single_input,
     )
+
+
+def _shell_args(command: str) -> list[str] | str:
+    """
+    The arguments that run `command` with the system shell, like `subprocess` with `shell=True`.
+
+    On Windows, this is a complete command line rather than a list (see `bob._capture.execute`).
+    """
+
+    if sys.platform == "win32":
+        # Exactly what `subprocess` builds for `shell=True`: `cmd.exe` takes everything after `/c`
+        # literally, so `command`'s own quotes must not be escaped.
+        return f'{os.environ.get("COMSPEC", "cmd.exe")} /c "{command}"'
+
+    # `--` so that a command starting with `-` isn't taken as options of the shell.
+    return ["/bin/sh", "-c", "--", command]
+
+
+def _capture(
+    args: list[str] | str,
+    cwd: Path,
+    display: str,
+    description: str,
+    check: bool,
+    text: bool,
+    strip: bool,
+) -> str | bytes:
+    """
+    Run `args` now and on every build, reconfiguring whenever its output changes.
+
+    `args` is a list of arguments, or a complete command line (see `bob._capture.execute`).
+
+    Both runs go through `bob._capture`, and `args` are escaped for Ninja, so they're identical.
+    """
+
+    from bob import _capture as capture
+
+    if len(args) == 0:
+        raise ValueError("Expected a command to run!")
+
+    if any("\n" in arg for arg in ([args] if isinstance(args, str) else args)):
+        raise ValueError(f"Ninja can't run commands containing newlines: {display!r}")
+
+    context = Context.current()
+
+    name = BOB_BUILDDIR_SUBDIRECTORY / f"bob-shell-output-{context.next_index('shell')}"
+    output_path = context.builddir / context.current_build_subdir / name
+
+    # Option values are attached with `=` so that they can't be taken as options themselves.
+    capture_args = [
+        sys.executable,
+        "-m",
+        "bob._capture",
+        f"--cwd={cwd}",
+        f"--output={output_path}",
+        *([] if check else ["--no-check"]),
+        *(["--command-line", "--", args] if isinstance(args, str) else ["--", *args]),
+    ]
+    generated = Rule(
+        ninja_escape(quote_args(capture_args)),
+        description=description,
+        restat=True,
+        always=True,
+    ).build(name)
+
+    context.configure_implicit_dependencies.add(generated)
+
+    try:
+        returncode, output = capture.execute(args, cwd)
+    except OSError as error:
+        if check:
+            raise ValueError(f"Failed to run {display!r}: {error}") from error
+        returncode, output = capture.FAILED_TO_RUN_RETURNCODE, b""
+
+    if check and returncode != 0:
+        sys.stdout.buffer.write(output)
+        raise ValueError(f'"{display}" exited with return code {returncode}')
+
+    capture.store(generated.path, output)
+
+    if strip:
+        output = output.strip()
+
+    if text:
+        return output.decode()
+
+    return output
 
 
 @overload
@@ -574,34 +709,79 @@ def shell(
 def shell(
     command: str, text: bool = True, check: bool = True, strip: bool = False
 ) -> str | bytes:
-    context = Context.current()
+    """
+    Run `command` with the system shell from the root directory, and return its output.
 
-    shell_index = context.variables.get("shell_index", 1)
-    if not isinstance(shell_index, int):
-        raise TypeError("The variable 'shell_index' must be an int")
-    context.variables["shell_index"] = shell_index + 1
+    Bob reruns `command` on every build, and reconfigures whenever its output changes.
+    Unless `check` is False, the command failing is an error. The command doesn't see `FORCE_COLOR`,
+    `CLICOLOR_FORCE` or `NINJA_STATUS`, which Bob sets for its own output.
+    """
 
-    name = BOB_BUILDDIR_SUBDIRECTORY / f"bob-shell-output-{shell_index}"
+    return _capture(
+        _shell_args(command),
+        cwd=Path("."),
+        display=command,
+        description="SHELL",
+        check=check,
+        text=text,
+        strip=strip,
+    )
 
-    generated = shell_output_rule(command).build(name)
 
-    context.configure_implicit_dependencies.add(generated)
+@overload
+def run(
+    args: Sequence[str | os.PathLike[str]],
+    *,
+    text: Literal[True] = True,
+    check: bool = True,
+    strip: bool = True,
+    cwd: None | str | os.PathLike[str] = None,
+) -> str: ...
 
-    p = subprocess.run(command, shell=True, check=False, capture_output=True)
-    if check and p.returncode != 0:
-        sys.stdout.buffer.write(p.stdout)
-        sys.stderr.buffer.write(p.stderr)
-        raise ValueError(f'"{command}" exited with return code {p.returncode}')
 
-    output = p.stdout
-    output_file = generated.path.resolve()
-    output_file.parent.mkdir(parents=True, exist_ok=True)
-    output_file.write_bytes(output)
+@overload
+def run(
+    args: Sequence[str | os.PathLike[str]],
+    *,
+    text: Literal[False],
+    check: bool = True,
+    strip: bool = True,
+    cwd: None | str | os.PathLike[str] = None,
+) -> bytes: ...
 
-    if strip:
-        output = output.strip()
 
-    if text:
-        return output.decode()
+def run(
+    args: Sequence[str | os.PathLike[str]],
+    *,
+    text: bool = True,
+    check: bool = True,
+    strip: bool = True,
+    cwd: None | str | os.PathLike[str] = None,
+) -> str | bytes:
+    """
+    Run the program `args[0]` with the arguments `args[1:]` without a shell, and return its output.
 
-    return output
+    Arguments are passed as-is, so they need no quoting. The command runs in `cwd`, which is
+    relative to the srcdir and defaults to it. Like `shell`, Bob reruns the command on every build
+    and reconfigures whenever its output changes, and unless `check` is False, the command failing
+    is an error. Like with `shell`, the command doesn't see `FORCE_COLOR`, `CLICOLOR_FORCE` or
+    `NINJA_STATUS`.
+    """
+
+    if isinstance(args, (str, bytes)):
+        raise TypeError(
+            "`run` takes a list of arguments, use `shell` to run a command line"
+        )
+
+    resolved_args = [os.fspath(arg) for arg in args]
+    resolved_cwd = Context.current().current_src_subdir / (cwd or ".")
+
+    return _capture(
+        resolved_args,
+        cwd=resolved_cwd,
+        display=shlex.join(resolved_args),
+        description="RUN",
+        check=check,
+        text=text,
+        strip=strip,
+    )

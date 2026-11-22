@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Literal, overload
 
@@ -31,8 +32,15 @@ def srcdir() -> Path:
 
 
 def rootdir() -> Path:
-    src = srcdir()
-    return Path(*([".."] * len(src.parts)))
+    """The root directory (where Bob runs), relative to the current srcdir.
+
+    On Windows, when the srcdir is on another drive, it's absolute instead.
+    """
+    try:
+        return Path(os.path.relpath(".", srcdir()))
+    except ValueError:
+        # `relpath` can't cross drives, and `srcdir() / rootdir()` is still the root this way.
+        return Path.cwd()
 
 
 @overload

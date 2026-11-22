@@ -9,6 +9,21 @@ from bob.external import jobserver_pool
 
 
 @contextmanager
+def _makeflags(value: str) -> Generator[None]:
+    """Set MAKEFLAGS for the duration of the context, restoring any previous value."""
+
+    previous = os.environ.get("MAKEFLAGS")
+    os.environ["MAKEFLAGS"] = value
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop("MAKEFLAGS", None)
+        else:
+            os.environ["MAKEFLAGS"] = previous
+
+
+@contextmanager
 def jobserver(jobs: int) -> Generator[None]:
     if jobs <= 0:
         raise ValueError("Cannot run a jobserver with non-positive jobs!")
@@ -22,28 +37,19 @@ def jobserver(jobs: int) -> Generator[None]:
             jobs,
         )
         try:
-            os.environ["MAKEFLAGS"] = env["MAKEFLAGS"]
-            yield
+            with _makeflags(env["MAKEFLAGS"]):
+                yield
         finally:
-            del os.environ["MAKEFLAGS"]
             win32api.CloseHandle(handle)
     else:
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
-            fifo_path = tmpdir_path / "jobserver"
+            fifo_path = Path(tmpdir) / "jobserver"
 
-            read_fd = None
-            write_fd = None
+            read_fd, write_fd, env = jobserver_pool.create_fifo(str(fifo_path), jobs)
             try:
-                read_fd, write_fd, env = jobserver_pool.create_fifo(
-                    str(fifo_path), jobs
-                )
-                os.environ["MAKEFLAGS"] = env["MAKEFLAGS"]
-                yield
+                with _makeflags(env["MAKEFLAGS"]):
+                    yield
             finally:
-                del os.environ["MAKEFLAGS"]
-                if read_fd is not None:
-                    os.close(read_fd)
-                if write_fd is not None:
-                    os.close(write_fd)
-                os.remove(fifo_path)
+                os.close(read_fd)
+                os.close(write_fd)
+                # The temporary directory removes the FIFO itself.

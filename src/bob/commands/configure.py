@@ -19,12 +19,19 @@ def configure(
 
     resolved_configs: dict[str, str] = {}
     if use_current_configs:
-        assert len(configs) == 0, "Can't provide configs and use current configs!"
+        if len(configs) != 0:
+            raise ValueError("Can't provide configs and use current configs!")
+        if not configs_path.is_file():
+            raise FileNotFoundError(
+                f"Can't use the current configs: {builddir} hasn't been configured yet"
+            )
         with open(configs_path, "r") as f:
             resolved_configs = cast(dict[str, str], json.load(f))
     else:
         for config in configs:
-            key, _, value = config.partition("=")
+            key, separator, value = config.partition("=")
+            if not separator or not key:
+                raise ValueError(f'Invalid config "{config}", expected KEY=VALUE')
             resolved_configs[key] = value
 
         serialized_configs = json.dumps(resolved_configs, indent=4, sort_keys=True)
