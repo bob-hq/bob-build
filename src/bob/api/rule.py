@@ -425,9 +425,8 @@ class Rule(Generic[OutputType]):
             }
 
             if self.always:
-                implicit = implicit or []
                 assert context.always is not None
-                implicit.append(context.always)
+                implicit = [*(implicit or []), context.always]
 
             resolved_inputs = (
                 RuleInput.resolve(
