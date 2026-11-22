@@ -582,7 +582,7 @@ def shell(
 
     name = BOB_BUILDDIR_SUBDIRECTORY / f"bob-shell-output-{shell_index}"
 
-    generated = shell_output_rule(command).build(name)
+    generated = shell_output_rule(ninja_escape(command)).build(name)
 
     context.configure_implicit_dependencies.add(generated)
 
