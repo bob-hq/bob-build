@@ -79,12 +79,14 @@ class ScopedRule(ScopedValue[Rule[OutputType]], Generic[OutputType]):
     ) -> OutputType:
         assert self.value is not None
 
-        if variables is None:
-            variables = {}
-
-        for key, value in self.variables.items():
-            if key in self.value.variable_names:
-                variables[key] = value
+        variables = {
+            **{
+                key: value
+                for key, value in self.variables.items()
+                if key in self.value.variable_names
+            },
+            **(variables or {}),
+        }
 
         return self.value.build(
             *outputs,
