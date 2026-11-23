@@ -167,3 +167,24 @@ def test_build_glob_doesnt_break_after_deleted_folders(
         assert_modification_time_increases(get_build_ninja_path(builddir)),
     ):
         build(builddir, bobfile)
+
+
+def test_build_quotes_single_path_variable(
+    unique_tmp_path: Path, bobfile: Path, builddir: Path
+) -> None:
+    bobfile.write_text(
+        dedent("""
+            from pathlib import Path
+
+            from bob.prelude import *
+
+            Rule("cat $source > $out", description="CAT").build(
+                "copied.txt", variables={"source": Path("with space.txt")}
+            )
+        """)
+    )
+    (unique_tmp_path / "with space.txt").write_text("contents\n")
+
+    build(builddir, bobfile)
+
+    assert (builddir / "copied.txt").read_text() == "contents\n"

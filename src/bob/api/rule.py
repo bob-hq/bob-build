@@ -413,12 +413,16 @@ class Rule(Generic[OutputType]):
                     for v in value
                 )
                 if not isinstance(value, RuleInput.Type)
-                else ninja_escape(
-                    RuleInput.resolve(
-                        value,
-                        srcdir_relative_paths=False,
-                        convert_strings_to_paths=False,
-                        convert_to_string=True,
+                else ninja_escape(value)
+                if isinstance(value, str)
+                else shlex.quote(
+                    ninja_escape(
+                        RuleInput.resolve(
+                            value,
+                            srcdir_relative_paths=False,
+                            convert_strings_to_paths=False,
+                            convert_to_string=True,
+                        )
                     )
                 )
                 for key, value in self.variables.items()
