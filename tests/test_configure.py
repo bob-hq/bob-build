@@ -65,3 +65,10 @@ def test_configure_lazy(bobfile: Path, builddir: Path) -> None:
         assert_modification_time_does_not_change(get_build_ninja_path(builddir)),
     ):
         configure(builddir, bobfile, lazy=True)
+
+
+def test_configure_rejects_config_without_value(bobfile: Path, builddir: Path) -> None:
+    bobfile.write_text("")
+
+    with pytest.raises(ValueError, match='Invalid config "KEY", expected KEY=VALUE'):
+        configure(builddir, bobfile, ["KEY"])

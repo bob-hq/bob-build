@@ -27,7 +27,9 @@ def configure(
             resolved_configs = cast(dict[str, str], json.load(f))
     else:
         for config in configs:
-            key, _, value = config.partition("=")
+            key, separator, value = config.partition("=")
+            if separator == "":
+                raise ValueError(f'Invalid config "{config}", expected KEY=VALUE')
             resolved_configs[key] = value
 
         serialized_configs = json.dumps(resolved_configs, indent=4, sort_keys=True)
