@@ -40,7 +40,7 @@ def include(path: str | Path) -> None:
 # TODO: change `imports` to not be kwargs (to avoid breakages/confusion with regard to other parameters) in 0.2
 def subbob(
     path: str | Path,
-    configs: None | Mapping[str, str] = None,
+    configs: Mapping[str, str] | None = None,
     unique_builddir: bool = True,
     **imports: Any,
 ) -> dict[str, Any]:

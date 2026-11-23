@@ -8,7 +8,7 @@ from pathlib import Path
 from bob.external import jobserver_pool
 
 
-def _restore_makeflags(original: None | str) -> None:
+def _restore_makeflags(original: str | None) -> None:
     if original is None:
         os.environ.pop("MAKEFLAGS", None)
     else:

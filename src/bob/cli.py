@@ -208,7 +208,7 @@ def build(
     configs: Collection[str],
     use_current_configs: bool,
     targets: Collection[str],
-    jobs: None | int,
+    jobs: int | None,
     no_jobserver: bool,
     no_pretty: bool,
     allow_build_outside_builddir: bool,

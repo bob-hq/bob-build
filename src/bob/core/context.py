@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 
 class Context:
-    _current: ClassVar["None | Context"] = None
+    _current: ClassVar["Context | None"] = None
 
     def __init__(
         self,
@@ -38,14 +38,14 @@ class Context:
         self.configs = configs
         self.srcdir = Path(".")
         self.used_configs: set[str] = set()
-        self.writer: None | Writer = None
-        self.compdb_writer: None | Writer = None
+        self.writer: Writer | None = None
+        self.compdb_writer: Writer | None = None
         self.configure_implicit_dependencies: set[RuleInput.Type] = set()
         self.configure_phony_implicit_dependencies: set[RuleInput.Type] = {
             FileTarget(get_configs_path(builddir))
         }
         self.variables: dict[str, Any] = {}
-        self.imports: None | dict[str, Any] = None
+        self.imports: dict[str, Any] | None = None
         self.exports: dict[str, Any] = {}
         self.always: PhonyTarget | None = None
         self.scopes: list[Scope] = []
@@ -83,9 +83,9 @@ class Context:
 
     def __exit__(
         self,
-        exc_type: None | type[BaseException],
-        exc: None | BaseException,
-        tb: None | TracebackType,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
     ) -> None:
         from bob.api.rule import Rule, RuleInput
 

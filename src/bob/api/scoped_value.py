@@ -10,21 +10,21 @@ T = TypeVar("T")
 
 
 class ScopedValue(Generic[T]):
-    def __init__(self, value: None | T = None) -> None:
+    def __init__(self, value: T | None = None) -> None:
         self.value = value
 
     @overload
     def get(
         self, required: Literal[False] = False, default: None = None
-    ) -> None | T: ...
+    ) -> T | None: ...
 
     @overload
     def get(self, required: Literal[False] = False, default: T = ...) -> T: ...
 
     @overload
-    def get(self, required: Literal[True] = True, default: None | T = None) -> T: ...
+    def get(self, required: Literal[True] = True, default: T | None = None) -> T: ...
 
-    def get(self, required: bool = True, default: None | T = None) -> None | T:
+    def get(self, required: bool = True, default: T | None = None) -> T | None:
         if self.value is None:
             if required:
                 raise ValueError("Required non-present value!")
@@ -72,13 +72,13 @@ class ScopedRule(ScopedValue[Rule[OutputType]], Generic[OutputType]):
     def build(
         self,
         *outputs: str | Path,
-        inputs: None | Sequence[RuleInput.Type] = None,
-        implicit: None | Sequence[RuleInput.Type] = None,
-        order_only: None | Sequence[RuleInput.Type] = None,
-        implicit_outputs: None | Sequence[str | Path] = None,
-        pool: None | str = None,
-        dyndep: None | str = None,
-        variables: None | Mapping[str, RuleInput.Multiple] = None,
+        inputs: Sequence[RuleInput.Type] | None = None,
+        implicit: Sequence[RuleInput.Type] | None = None,
+        order_only: Sequence[RuleInput.Type] | None = None,
+        implicit_outputs: Sequence[str | Path] | None = None,
+        pool: str | None = None,
+        dyndep: str | None = None,
+        variables: Mapping[str, RuleInput.Multiple] | None = None,
     ) -> OutputType:
         assert self.value is not None
 

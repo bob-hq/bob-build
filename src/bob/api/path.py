@@ -53,7 +53,7 @@ def read(path: RuleInput.Type, text: bool = False) -> str | bytes:
     return path.read_bytes()
 
 
-def glob(pattern: str, path: None | str | Path = None) -> list[Path]:
+def glob(pattern: str, path: str | Path | None = None) -> list[Path]:
     context = Context.current()
 
     if path is None:

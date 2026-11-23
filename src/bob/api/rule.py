@@ -186,22 +186,22 @@ class Rule(Generic[OutputType]):
         self: "Rule[FileTarget]",
         command: str,
         *,
-        depfile: None | str = None,
-        deps: None | str = None,
-        description: None | str = None,
+        depfile: str | None = None,
+        deps: str | None = None,
+        description: str | None = None,
         restat: bool = False,
         generator: bool = False,
-        pool: None | str = None,
+        pool: str | None = None,
         always: bool = False,
-        compile_command: None | str = None,
+        compile_command: str | None = None,
         single_input: bool = False,
         single_output: Literal[True] = True,
-        variables: None | Mapping[str, RuleInput.Multiple] = None,
-        implicit: None | Sequence[RuleInput.Type] = None,
-        order_only: None | Sequence[RuleInput.Type] = None,
-        implicit_outputs: None | Sequence[str | Path] = None,
-        rspfile: None | str = None,
-        rspfile_content: None | str = None,
+        variables: Mapping[str, RuleInput.Multiple] | None = None,
+        implicit: Sequence[RuleInput.Type] | None = None,
+        order_only: Sequence[RuleInput.Type] | None = None,
+        implicit_outputs: Sequence[str | Path] | None = None,
+        rspfile: str | None = None,
+        rspfile_content: str | None = None,
     ) -> None: ...
 
     @overload
@@ -209,44 +209,44 @@ class Rule(Generic[OutputType]):
         self: "Rule[list[FileTarget]]",
         command: str,
         *,
-        depfile: None | str = None,
-        deps: None | str = None,
-        description: None | str = None,
+        depfile: str | None = None,
+        deps: str | None = None,
+        description: str | None = None,
         restat: bool = False,
         generator: bool = False,
-        pool: None | str = None,
+        pool: str | None = None,
         always: bool = False,
-        compile_command: None | str = None,
+        compile_command: str | None = None,
         single_input: bool = False,
         single_output: Literal[False],
-        variables: None | Mapping[str, RuleInput.Multiple] = None,
-        implicit: None | Sequence[RuleInput.Type] = None,
-        order_only: None | Sequence[RuleInput.Type] = None,
-        implicit_outputs: None | Sequence[str | Path] = None,
-        rspfile: None | str = None,
-        rspfile_content: None | str = None,
+        variables: Mapping[str, RuleInput.Multiple] | None = None,
+        implicit: Sequence[RuleInput.Type] | None = None,
+        order_only: Sequence[RuleInput.Type] | None = None,
+        implicit_outputs: Sequence[str | Path] | None = None,
+        rspfile: str | None = None,
+        rspfile_content: str | None = None,
     ) -> None: ...
 
     def __init__(
         self,
         command: str,
         *,
-        depfile: None | str = None,
-        deps: None | str = None,
-        description: None | str = None,
+        depfile: str | None = None,
+        deps: str | None = None,
+        description: str | None = None,
         restat: bool = False,
         generator: bool = False,
-        pool: None | str = None,
+        pool: str | None = None,
         always: bool = False,
-        compile_command: None | str = None,
+        compile_command: str | None = None,
         single_input: bool = False,
         single_output: bool = True,
-        variables: None | Mapping[str, RuleInput.Multiple] = None,
-        implicit: None | Sequence[RuleInput.Type] = None,
-        order_only: None | Sequence[RuleInput.Type] = None,
-        implicit_outputs: None | Sequence[str | Path] = None,
-        rspfile: None | str = None,
-        rspfile_content: None | str = None,
+        variables: Mapping[str, RuleInput.Multiple] | None = None,
+        implicit: Sequence[RuleInput.Type] | None = None,
+        order_only: Sequence[RuleInput.Type] | None = None,
+        implicit_outputs: Sequence[str | Path] | None = None,
+        rspfile: str | None = None,
+        rspfile_content: str | None = None,
     ):
         from bob.api.scoped_value import ScopedValue
 
@@ -340,13 +340,13 @@ class Rule(Generic[OutputType]):
     def build(
         self,
         *outputs: str | Path,
-        inputs: None | Sequence[RuleInput.Type] = None,
-        implicit: None | Sequence[RuleInput.Type] = None,
-        order_only: None | Sequence[RuleInput.Type] = None,
-        implicit_outputs: None | Sequence[str | Path] = None,
-        pool: None | str = None,
-        dyndep: None | str = None,
-        variables: None | Mapping[str, RuleInput.Multiple] = None,
+        inputs: Sequence[RuleInput.Type] | None = None,
+        implicit: Sequence[RuleInput.Type] | None = None,
+        order_only: Sequence[RuleInput.Type] | None = None,
+        implicit_outputs: Sequence[str | Path] | None = None,
+        pool: str | None = None,
+        dyndep: str | None = None,
+        variables: Mapping[str, RuleInput.Multiple] | None = None,
     ) -> OutputType:
         _reject_strings(
             inputs=inputs,
@@ -539,7 +539,7 @@ class Rule(Generic[OutputType]):
                 )
 
 
-def phony(name: str, inputs: None | Sequence[RuleInput.Type] = None) -> PhonyTarget:
+def phony(name: str, inputs: Sequence[RuleInput.Type] | None = None) -> PhonyTarget:
     _reject_strings(inputs=inputs)
 
     context = Context.current()
@@ -571,7 +571,7 @@ def phony(name: str, inputs: None | Sequence[RuleInput.Type] = None) -> PhonyTar
 # TODO: change check to True by default in 0.2
 def shell_output_rule(
     command: str,
-    pool: None | str = None,
+    pool: str | None = None,
     single_input: bool = False,
     check: bool = False,
 ) -> Rule[FileTarget]:

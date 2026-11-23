@@ -37,7 +37,7 @@ def config(name: str, required: bool = False, default: str | None = None) -> str
 
 # TODO: remove _version in 0.2
 def bob_required_package_version(
-    package: str, version: str, _actual: None | str = None
+    package: str, version: str, _actual: str | None = None
 ) -> None:
     if _actual is None:
         _actual = importlib_version(package)
@@ -73,5 +73,5 @@ def bob_required_package_version(
 
 
 # TODO: remove bob_version in 0.2
-def bob_required_version(version: str, bob_version: None | str = None) -> None:
+def bob_required_version(version: str, bob_version: str | None = None) -> None:
     bob_required_package_version("bob-build", version, bob_version)

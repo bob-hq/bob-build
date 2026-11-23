@@ -19,7 +19,7 @@ def run_ninja(
     builddir: Path,
     targets: Iterable[os.PathLike[str] | str] = (),
     no_pretty: bool = False,
-    extra_ninja_arguments: None | list[str] = None,
+    extra_ninja_arguments: list[str] | None = None,
 ) -> None:
     arguments: list[os.PathLike[str] | str] = [
         Path(NINJA_BIN_DIR) / "ninja",
@@ -51,11 +51,11 @@ def build(
     configs: Collection[str] = (),
     use_current_configs: bool = False,
     targets: Collection[str] = (),
-    jobs: None | int = None,
+    jobs: int | None = None,
     no_jobserver: bool = False,
     no_pretty: bool = False,
     allow_build_outside_builddir: bool = False,
-    extra_ninja_arguments: None | list[str] = None,
+    extra_ninja_arguments: list[str] | None = None,
 ) -> None:
     if jobs is None:
         jobs = os.cpu_count() or 1

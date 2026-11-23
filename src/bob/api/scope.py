@@ -37,9 +37,9 @@ class Scope(abc.ABC):
 
     def __exit__(
         self,
-        exc_type: None | type[BaseException],
-        exc: None | BaseException,
-        tb: None | TracebackType,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
     ) -> None:
         self.close()
 
