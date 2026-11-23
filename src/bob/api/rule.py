@@ -2,6 +2,7 @@ import os
 import shlex
 import subprocess
 import sys
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Generic, Literal, TypeAlias, TypeVar, cast, overload
@@ -24,9 +25,15 @@ class PhonyTarget:
     name: str
 
 
+def _reject_strings(**arguments: object) -> None:
+    for name, value in arguments.items():
+        if isinstance(value, str):
+            raise TypeError(f"`{name}` must be a list, not a string: {value!r}")
+
+
 class RuleInput:
     Type: TypeAlias = str | Path | FileTarget | PhonyTarget
-    Multiple: TypeAlias = Type | list[Type]
+    Multiple: TypeAlias = Type | Sequence[Type]
 
     def __init__(self) -> None:
         raise NotImplementedError("RuleInput is a utility namespace")
@@ -189,10 +196,10 @@ class Rule(Generic[OutputType]):
         compile_command: None | str = None,
         single_input: bool = False,
         single_output: Literal[True] = True,
-        variables: None | dict[str, RuleInput.Multiple] = None,
-        implicit: None | list[RuleInput.Type] = None,
-        order_only: None | list[RuleInput.Type] = None,
-        implicit_outputs: None | list[str | Path] = None,
+        variables: None | Mapping[str, RuleInput.Multiple] = None,
+        implicit: None | Sequence[RuleInput.Type] = None,
+        order_only: None | Sequence[RuleInput.Type] = None,
+        implicit_outputs: None | Sequence[str | Path] = None,
         rspfile: None | str = None,
         rspfile_content: None | str = None,
     ) -> None: ...
@@ -212,10 +219,10 @@ class Rule(Generic[OutputType]):
         compile_command: None | str = None,
         single_input: bool = False,
         single_output: Literal[False],
-        variables: None | dict[str, RuleInput.Multiple] = None,
-        implicit: None | list[RuleInput.Type] = None,
-        order_only: None | list[RuleInput.Type] = None,
-        implicit_outputs: None | list[str | Path] = None,
+        variables: None | Mapping[str, RuleInput.Multiple] = None,
+        implicit: None | Sequence[RuleInput.Type] = None,
+        order_only: None | Sequence[RuleInput.Type] = None,
+        implicit_outputs: None | Sequence[str | Path] = None,
         rspfile: None | str = None,
         rspfile_content: None | str = None,
     ) -> None: ...
@@ -234,14 +241,18 @@ class Rule(Generic[OutputType]):
         compile_command: None | str = None,
         single_input: bool = False,
         single_output: bool = True,
-        variables: None | dict[str, RuleInput.Multiple] = None,
-        implicit: None | list[RuleInput.Type] = None,
-        order_only: None | list[RuleInput.Type] = None,
-        implicit_outputs: None | list[str | Path] = None,
+        variables: None | Mapping[str, RuleInput.Multiple] = None,
+        implicit: None | Sequence[RuleInput.Type] = None,
+        order_only: None | Sequence[RuleInput.Type] = None,
+        implicit_outputs: None | Sequence[str | Path] = None,
         rspfile: None | str = None,
         rspfile_content: None | str = None,
     ):
         from bob.api.scoped_value import ScopedValue
+
+        _reject_strings(
+            implicit=implicit, order_only=order_only, implicit_outputs=implicit_outputs
+        )
 
         context = Context.current()
 
@@ -297,9 +308,9 @@ class Rule(Generic[OutputType]):
         self.single_input = single_input
         self.single_output = single_output
         self.always = always
-        self.implicit = ScopedValue(implicit or [])
-        self.order_only = ScopedValue(order_only or [])
-        self.implicit_outputs = ScopedValue(implicit_outputs or [])
+        self.implicit = ScopedValue(list(implicit or []))
+        self.order_only = ScopedValue(list(order_only or []))
+        self.implicit_outputs = ScopedValue(list(implicit_outputs or []))
         self.has_rspfile = rspfile is not None
 
         for key, value in variables.items():
@@ -329,14 +340,21 @@ class Rule(Generic[OutputType]):
     def build(
         self,
         *outputs: str | Path,
-        inputs: None | list[RuleInput.Type] = None,
-        implicit: None | list[RuleInput.Type] = None,
-        order_only: None | list[RuleInput.Type] = None,
-        implicit_outputs: None | list[str | Path] = None,
+        inputs: None | Sequence[RuleInput.Type] = None,
+        implicit: None | Sequence[RuleInput.Type] = None,
+        order_only: None | Sequence[RuleInput.Type] = None,
+        implicit_outputs: None | Sequence[str | Path] = None,
         pool: None | str = None,
         dyndep: None | str = None,
-        variables: None | dict[str, RuleInput.Multiple] = None,
+        variables: None | Mapping[str, RuleInput.Multiple] = None,
     ) -> OutputType:
+        _reject_strings(
+            inputs=inputs,
+            implicit=implicit,
+            order_only=order_only,
+            implicit_outputs=implicit_outputs,
+        )
+
         if variables is None:
             variables = {}
 
@@ -521,7 +539,9 @@ class Rule(Generic[OutputType]):
                 )
 
 
-def phony(name: str, inputs: None | list[RuleInput.Type] = None) -> PhonyTarget:
+def phony(name: str, inputs: None | Sequence[RuleInput.Type] = None) -> PhonyTarget:
+    _reject_strings(inputs=inputs)
+
     context = Context.current()
 
     resolved_inputs = (

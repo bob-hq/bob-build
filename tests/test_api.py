@@ -1,5 +1,6 @@
 from collections.abc import Generator
 from pathlib import Path
+from types import MappingProxyType
 
 import pytest
 
@@ -43,3 +44,22 @@ def test_glob(unique_tmp_path: Path, context: Context) -> None:
 
     assert glob("**/*.txt", "dummy") == [Path("dummy/inside/a.txt")]
     assert glob("**/*.c") == [Path("dummy/a.c")]
+
+
+def test_rule_rejects_string_inputs(context: Context) -> None:
+    rule: Rule[FileTarget] = Rule("cp $in $out")
+    with pytest.raises(
+        TypeError, match="`inputs` must be a list, not a string: 'main.c'"
+    ):
+        rule.build("out", inputs="main.c")
+
+
+def test_rule_accepts_tuples_and_mappings(context: Context) -> None:
+    rule: Rule[FileTarget] = Rule("cat $in $extra > $out", implicit=("b.txt",))
+
+    assert rule.implicit.get() == ["b.txt"]
+    assert rule.build(
+        "out",
+        inputs=("a.txt",),
+        variables=MappingProxyType({"extra": ("b.txt",)}),
+    ) == FileTarget(Path("build/out"))

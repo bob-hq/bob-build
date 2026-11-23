@@ -1,5 +1,6 @@
 import inspect
 import runpy
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +40,7 @@ def include(path: str | Path) -> None:
 # TODO: change `imports` to not be kwargs (to avoid breakages/confusion with regard to other parameters) in 0.2
 def subbob(
     path: str | Path,
-    configs: None | dict[str, str] = None,
+    configs: None | Mapping[str, str] = None,
     unique_builddir: bool = True,
     **imports: Any,
 ) -> dict[str, Any]:
@@ -59,7 +60,7 @@ def subbob(
         "current_src_subdir": bobfile.parent,
         "imports": imports,
         "exports": {},
-        "configs": configs,
+        "configs": dict(configs),
     }
 
     if unique_builddir:

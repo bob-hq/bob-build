@@ -1,3 +1,4 @@
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Generic, Literal, TypeVar, overload
 
@@ -71,13 +72,13 @@ class ScopedRule(ScopedValue[Rule[OutputType]], Generic[OutputType]):
     def build(
         self,
         *outputs: str | Path,
-        inputs: None | list[RuleInput.Type] = None,
-        implicit: None | list[RuleInput.Type] = None,
-        order_only: None | list[RuleInput.Type] = None,
-        implicit_outputs: None | list[str | Path] = None,
+        inputs: None | Sequence[RuleInput.Type] = None,
+        implicit: None | Sequence[RuleInput.Type] = None,
+        order_only: None | Sequence[RuleInput.Type] = None,
+        implicit_outputs: None | Sequence[str | Path] = None,
         pool: None | str = None,
         dyndep: None | str = None,
-        variables: None | dict[str, RuleInput.Multiple] = None,
+        variables: None | Mapping[str, RuleInput.Multiple] = None,
     ) -> OutputType:
         assert self.value is not None
 
