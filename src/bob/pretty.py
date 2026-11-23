@@ -38,9 +38,9 @@ PRETTY_COLORS = (
 )
 
 
-NINJA_OUTPUT_BLACKLIST = {
+NINJA_OUTPUT_NONPARSED_BLACKLIST = {"ninja: Jobserver mode detected"}
+NINJA_OUTPUT_PARSED_BLACKLIST = {
     f"/{BOB_BUILDDIR_SUBDIRECTORY}/bob-shell-output-",
-    "ninja: Jobserver mode detected",
 }
 
 
@@ -86,7 +86,7 @@ def pretty_run_ninja(arguments: list[os.PathLike[str] | str]) -> int:
                 sys.stdout.buffer.write(line)
                 continue
 
-            if any(b in decoded for b in NINJA_OUTPUT_BLACKLIST):
+            if any(b in decoded for b in NINJA_OUTPUT_NONPARSED_BLACKLIST):
                 continue
 
             try:
@@ -94,6 +94,15 @@ def pretty_run_ninja(arguments: list[os.PathLike[str] | str]) -> int:
                 finished_edges, total_edges = [int(x) for x in parameters.split(",")]
             except ValueError:
                 console.print(decoded, highlight=False, markup=False)
+                continue
+
+            progress.update(
+                task_id,
+                completed=finished_edges,
+                total=total_edges,
+            )
+
+            if any(b in decoded for b in NINJA_OUTPUT_PARSED_BLACKLIST):
                 continue
 
             description, _, outputs = command.partition(" ")
@@ -115,12 +124,6 @@ def pretty_run_ninja(arguments: list[os.PathLike[str] | str]) -> int:
                 + Text(outputs, style="white"),
                 highlight=False,
                 markup=False,
-            )
-
-            progress.update(
-                task_id,
-                completed=finished_edges,
-                total=total_edges,
             )
 
     return p.wait()
