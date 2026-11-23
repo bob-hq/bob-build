@@ -280,3 +280,17 @@ def test_build_shows_failing_shell(
         capsys.readouterr().out.splitlines()[0]
         == "\x1b[31mFAILED: [code=1] \x1b[0mbuild/bob/bob-shell-output-1 "
     )
+
+
+def test_build_target_starting_with_dash(bobfile: Path) -> None:
+    bobfile.write_text(
+        dedent("""
+            from bob.prelude import *
+
+            shell_output_rule("echo hi").build("-out")
+        """)
+    )
+
+    build(Path("."), bobfile, targets=["-out"])
+
+    assert Path("-out").read_text() == "hi\n"

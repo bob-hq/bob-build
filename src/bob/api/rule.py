@@ -556,7 +556,7 @@ def shell_output_rule(
     check: bool = False,
 ) -> Rule[FileTarget]:
     return Rule(
-        command=f"({command}) > $out.new {'&&' if check else ';'} {{ cmp -s $out $out.new || mv $out.new $out; }}; status=$$?; rm -f $out.new; exit $$status",
+        command=f"({command}) > $out.new {'&&' if check else ';'} {{ cmp -s -- $out $out.new || mv -- $out.new $out; }}; status=$$?; rm -f -- $out.new; exit $$status",
         description="SHELL",
         restat=True,
         pool=pool,

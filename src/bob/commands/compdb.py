@@ -22,7 +22,9 @@ def compdb(
     configure(builddir, bobfile, configs, use_current_configs, lazy=True)
 
     ninja_args = (
-        ["-t", "compdb"] if len(targets) == 0 else ["-t", "compdb-targets", *targets]
+        ["-t", "compdb"]
+        if len(targets) == 0
+        else ["-t", "compdb-targets", "--", *targets]
     )
 
     # Write to a separate file so that a failure keeps the previous database.

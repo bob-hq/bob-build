@@ -30,7 +30,7 @@ def run_ninja(
     if extra_ninja_arguments is not None:
         arguments.extend(extra_ninja_arguments)
 
-    arguments.extend(targets)
+    arguments.extend(["--", *targets])
 
     returncode = (
         subprocess.run(arguments, check=False).returncode
