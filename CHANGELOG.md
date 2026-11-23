@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.1.14] - 2026-11-23
+
+https://github.com/bob-hq/bob/compare/v0.1.13...v0.1.14
+
+## Fixed
+
+- Reconfiguring no longer loops forever when the Bobfile is in another directory, and now passes the build directory.
+- `rootdir()` now works for source directories outside the root or given as absolute paths.
+- `$` is now escaped in `shell` commands.
+- `ScopedRule.build` variables now override scoped ones.
+- `always` rules no longer append to the caller's `implicit` list.
+- `description` and `pool` are now rejected as variable names.
+- A pre-existing `MAKEFLAGS` is now restored after running the jobserver.
+- `compile_commands.json` is now created after Ninja runs, and the previous one is kept when `bob compdb` fails.
+- Added `__init__.py` to all subpackages so pyright resolves them.
+
+
 ## [0.1.13] - 2026-11-21
 
 https://github.com/bob-hq/bob/compare/v0.1.12...v0.1.13
