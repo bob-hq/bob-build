@@ -106,12 +106,14 @@ def cli() -> None:
     is_flag=True,
     help="Allow building targets outside of the build directory.",
 )
+@option("--from-ninja", is_flag=True, hidden=True)
 def configure(
     builddir: Path,
     bobfile: Path,
     configs: Collection[str],
     use_current_configs: bool,
     allow_build_outside_builddir: bool,
+    from_ninja: bool,
 ) -> None:
     """Generate the Ninja file to build the project."""
 
@@ -123,6 +125,7 @@ def configure(
         configs=configs,
         use_current_configs=use_current_configs,
         allow_build_outside_builddir=allow_build_outside_builddir,
+        from_ninja=from_ninja,
     )
 
 

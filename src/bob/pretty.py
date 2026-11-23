@@ -2,6 +2,8 @@ import math
 import os
 import subprocess
 import sys
+from collections.abc import Generator
+from contextlib import contextmanager
 from typing import IO
 
 from rich.progress import (
@@ -10,6 +12,8 @@ from rich.progress import (
     Progress,
     SpinnerColumn,
     TaskProgressColumn,
+    TextColumn,
+    TimeElapsedColumn,
     TimeRemainingColumn,
 )
 from rich.text import Text
@@ -38,6 +42,20 @@ NINJA_OUTPUT_BLACKLIST = {
     f"/{BOB_BUILDDIR_SUBDIRECTORY}/bob-shell-output-",
     "ninja: Jobserver mode detected",
 }
+
+
+@contextmanager
+def pretty_configuring() -> Generator[None]:
+    with Progress(
+        SpinnerColumn(),
+        TimeElapsedColumn(),
+        TextColumn("Configuring..."),
+        BarColumn(bar_width=None),
+        console=console,
+        transient=True,
+    ) as progress:
+        progress.add_task("", total=None)
+        yield
 
 
 def pretty_run_ninja(arguments: list[os.PathLike[str] | str]) -> int:

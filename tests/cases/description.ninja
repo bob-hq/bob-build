@@ -9,7 +9,7 @@ rule echo-bob-1
 build build/hi: echo-bob-1
 build $root/tests/cases/description.bob build/bob/configs.json: phony
 rule configure-bob-2
-  command = FORCE_COLOR=1 $bobbin configure --use-current-configs -f $bobfile -B $bobbuilddir
+  command = FORCE_COLOR=1 $bobbin configure --from-ninja --use-current-configs -f $bobfile -B $bobbuilddir
   description = CONFIGURE $out
   generator = 1
   pool = console

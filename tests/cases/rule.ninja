@@ -15,7 +15,7 @@ rule bob-2
 build build/rspfile-out: bob-2 $root/tests/cases/rspfile-in-1 $root/tests/cases/rspfile-in-2
 build $root/tests/cases/rule.bob build/bob/configs.json: phony
 rule configure-bob-3
-  command = FORCE_COLOR=1 $bobbin configure --use-current-configs -f $bobfile -B $bobbuilddir
+  command = FORCE_COLOR=1 $bobbin configure --from-ninja --use-current-configs -f $bobfile -B $bobbuilddir
   description = CONFIGURE $out
   generator = 1
   pool = console

@@ -1,10 +1,12 @@
 import json
 from collections.abc import Collection
+from contextlib import nullcontext
 from pathlib import Path
 from typing import cast
 
 from bob.constants import get_build_ninja_path, get_configs_path
 from bob.core.context import Context
+from bob.pretty import pretty_configuring
 
 
 def configure(
@@ -14,6 +16,7 @@ def configure(
     use_current_configs: bool = False,
     lazy: bool = False,
     allow_build_outside_builddir: bool = False,
+    from_ninja: bool = False,
 ) -> None:
     configs_path = get_configs_path(builddir)
 
@@ -37,7 +40,10 @@ def configure(
     if lazy and get_build_ninja_path(builddir).exists():
         return
 
-    with Context(
-        builddir, bobfile, resolved_configs, allow_build_outside_builddir
-    ) as context:
+    with (
+        nullcontext() if from_ninja else pretty_configuring(),
+        Context(
+            builddir, bobfile, resolved_configs, allow_build_outside_builddir
+        ) as context,
+    ):
         context.evaluate(bobfile, restore_configs=False)

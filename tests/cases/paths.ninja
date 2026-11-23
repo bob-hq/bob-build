@@ -13,7 +13,7 @@ build build/resolve-src: bob-1 $root/tests/cases/inside/deep/in-deep $root/tests
 build build/resolve-src-outside: bob-1 $root/tests/cases/outside
 build $root/tests/cases/paths.bob build/bob/configs.json: phony
 rule configure-bob-2
-  command = FORCE_COLOR=1 $bobbin configure --use-current-configs -f $bobfile -B $bobbuilddir
+  command = FORCE_COLOR=1 $bobbin configure --from-ninja --use-current-configs -f $bobfile -B $bobbuilddir
   description = CONFIGURE $out
   generator = 1
   pool = console

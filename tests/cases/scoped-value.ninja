@@ -14,7 +14,7 @@ build build/hi$ hi: bob-2
   magic = hi
 build $root/tests/cases/scoped-value.bob build/bob/configs.json: phony
 rule configure-bob-3
-  command = FORCE_COLOR=1 $bobbin configure --use-current-configs -f $bobfile -B $bobbuilddir
+  command = FORCE_COLOR=1 $bobbin configure --from-ninja --use-current-configs -f $bobfile -B $bobbuilddir
   description = CONFIGURE $out
   generator = 1
   pool = console

@@ -15,7 +15,7 @@ rule shell-bob-2
 build build/magic: shell-bob-2 | build/bob/always
 build $root/tests/cases/basic.bob build/bob/configs.json: phony
 rule configure-bob-3
-  command = FORCE_COLOR=1 $bobbin configure --use-current-configs -f $bobfile -B $bobbuilddir
+  command = FORCE_COLOR=1 $bobbin configure --from-ninja --use-current-configs -f $bobfile -B $bobbuilddir
   description = CONFIGURE $out
   generator = 1
   pool = console

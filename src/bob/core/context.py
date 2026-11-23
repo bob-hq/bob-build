@@ -105,7 +105,7 @@ class Context:
         )
 
         Rule(
-            "FORCE_COLOR=1 $bobbin configure --use-current-configs -f $bobfile -B $bobbuilddir"
+            "FORCE_COLOR=1 $bobbin configure --from-ninja --use-current-configs -f $bobfile -B $bobbuilddir"
             + (
                 " --allow-build-outside-builddir"
                 if self.allow_build_outside_builddir
