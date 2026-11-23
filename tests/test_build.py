@@ -207,3 +207,33 @@ def test_build_jobs(
     build(builddir, bobfile, jobs=jobs, no_jobserver=no_jobserver)
 
     assert (builddir / "hi").read_text() == "hi\n"
+
+
+def test_build_unchecked_failing_shell(bobfile: Path, builddir: Path) -> None:
+    bobfile.write_text(
+        dedent("""
+            from bob.prelude import *
+
+            shell("echo hi; exit 1", check=False)
+        """)
+    )
+
+    build(builddir, bobfile)
+
+    with assert_modification_time_does_not_change(get_build_ninja_path(builddir)):
+        build(builddir, bobfile)
+
+
+def test_build_failing_shell_output_rule(bobfile: Path, builddir: Path) -> None:
+    bobfile.write_text(
+        dedent("""
+            from bob.prelude import *
+
+            shell_output_rule("exit 1", check=True).build("out")
+        """)
+    )
+
+    with pytest.raises(SystemExit):
+        build(builddir, bobfile)
+
+    assert not (builddir / "out").exists()

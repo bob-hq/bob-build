@@ -548,11 +548,15 @@ def phony(name: str, inputs: None | list[RuleInput.Type] = None) -> PhonyTarget:
     return PhonyTarget(name)
 
 
+# TODO: change check to True by default in 0.2
 def shell_output_rule(
-    command: str, pool: None | str = None, single_input: bool = False
+    command: str,
+    pool: None | str = None,
+    single_input: bool = False,
+    check: bool = False,
 ) -> Rule[FileTarget]:
     return Rule(
-        command=f"(({command}) > $out.new && cmp -s $out $out.new || mv $out.new $out); rm -f $out.new",
+        command=f"({command}) > $out.new {'&&' if check else ';'} {{ cmp -s $out $out.new || mv $out.new $out; }}; status=$$?; rm -f $out.new; exit $$status",
         description="SHELL",
         restat=True,
         pool=pool,
@@ -586,7 +590,7 @@ def shell(
 
     name = BOB_BUILDDIR_SUBDIRECTORY / f"bob-shell-output-{shell_index}"
 
-    generated = shell_output_rule(ninja_escape(command)).build(name)
+    generated = shell_output_rule(ninja_escape(command), check=check).build(name)
 
     context.configure_implicit_dependencies.add(generated)
 

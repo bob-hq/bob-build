@@ -8,7 +8,7 @@ rule bob-1
 build build/hi: bob-1
 build hola: phony build/hi
 rule shell-bob-2
-  command = ((cat magic) > $out.new && cmp -s $out $out.new || mv $out.new $out); rm -f $out.new
+  command = (cat magic) > $out.new ; { cmp -s $out $out.new || mv $out.new $out; }; status=$$?; rm -f $out.new; exit $$status
   description = SHELL $out
   restat = 1
 
