@@ -237,3 +237,19 @@ def test_build_failing_shell_output_rule(bobfile: Path, builddir: Path) -> None:
         build(builddir, bobfile)
 
     assert not (builddir / "out").exists()
+
+
+def test_build_input_starting_with_dollar(builddir: Path) -> None:
+    bobfile = Path("Bobfile")
+    Path("$HOME").write_text("hi\n")
+    bobfile.write_text(
+        dedent("""
+            from bob.prelude import *
+
+            Rule("cp $in $out").build("out", inputs=["$HOME"])
+        """)
+    )
+
+    build(builddir, bobfile)
+
+    assert (builddir / "out").read_text() == "hi\n"

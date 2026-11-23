@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# Copied without modification from https://raw.githubusercontent.com/ninja-build/ninja/c2817e5854b825b3e7d38ac7a266724ba1313e29/misc/ninja_syntax.py
+# Copied from https://raw.githubusercontent.com/ninja-build/ninja/c2817e5854b825b3e7d38ac7a266724ba1313e29/misc/ninja_syntax.py
+# Modified so that `escape_path` always escapes `$`, since Bob's paths are never Ninja variables.
 
 # Copyright 2011 Google Inc. All Rights Reserved.
 #
@@ -29,11 +30,6 @@ from typing import Dict, List, Match, Optional, Tuple, Union
 
 def escape_path(word: str) -> str:
     # Escape '$' first so foo$bar is not parsed as a $bar variable.
-    # A leading $ident is ninja generator syntax ($root, $builddir), not a
-    # filename that starts with '$'.
-    if (len(word) > 1 and word[0] == '$' and
-            (word[1].isalpha() or word[1] == '_' or word[1] == '{')):
-        return word.replace(' ', '$ ').replace(':', '$:')
     return word.replace('$', '$$').replace(' ', '$ ').replace(':', '$:')
 
 class Writer(object):
