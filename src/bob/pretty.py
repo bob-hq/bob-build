@@ -44,6 +44,19 @@ NINJA_OUTPUT_PARSED_BLACKLIST = {
 }
 
 
+def truncate_middle(text: str, width: int) -> str:
+    ELLIPSIS = "..."
+
+    if len(text) <= width:
+        return text
+
+    if width <= len(ELLIPSIS):
+        return text[: max(width, 0)]
+
+    width -= len(ELLIPSIS)
+    return text[: width // 2] + ELLIPSIS + text[-math.ceil(width / 2) :]
+
+
 @contextmanager
 def pretty_configuring() -> Generator[None]:
     with Progress(
@@ -109,15 +122,7 @@ def pretty_run_ninja(arguments: list[os.PathLike[str] | str]) -> int:
 
             color = PRETTY_COLORS[ord(description[0]) % len(PRETTY_COLORS)]
 
-            outputs = " " + outputs
-
-            if (available := console.width - DESCRIPTION_WIDTH) < len(outputs):
-                available -= 3
-                outputs = (
-                    outputs[: available // 2]
-                    + "..."
-                    + outputs[-math.ceil(available / 2) :]
-                )
+            outputs = truncate_middle(" " + outputs, console.width - DESCRIPTION_WIDTH)
 
             console.print(
                 Text(description.ljust(DESCRIPTION_WIDTH), style=color)
