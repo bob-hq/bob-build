@@ -1,6 +1,8 @@
 from pathlib import Path
 from textwrap import dedent
 
+import pytest
+
 from bob.commands.build import build
 from bob.constants import get_build_ninja_path
 from tests.utilities import (
@@ -188,3 +190,20 @@ def test_build_quotes_single_path_variable(
     build(builddir, bobfile)
 
     assert (builddir / "copied.txt").read_text() == "contents\n"
+
+
+@pytest.mark.parametrize(("jobs", "no_jobserver"), [(0, False), (2, True)])
+def test_build_jobs(
+    bobfile: Path, builddir: Path, jobs: int, no_jobserver: bool
+) -> None:
+    bobfile.write_text(
+        dedent("""
+            from bob.prelude import *
+
+            Rule("echo hi > $out").build("hi")
+        """)
+    )
+
+    build(builddir, bobfile, jobs=jobs, no_jobserver=no_jobserver)
+
+    assert (builddir / "hi").read_text() == "hi\n"

@@ -174,7 +174,7 @@ def configure(
     "-j",
     "--jobs",
     "jobs",
-    type=int,
+    type=click.IntRange(min=0),
     default=os.cpu_count(),
     help="Run this many jobs in parallel (0 means infinity).",
     show_default=True,

@@ -58,12 +58,13 @@ def build(
     extra_ninja_arguments: None | list[str] = None,
 ) -> None:
     if jobs is None:
-        jobs = os.cpu_count()
+        jobs = os.cpu_count() or 1
 
     context: AbstractContextManager[None] = nullcontext()
 
-    if not no_jobserver:
-        assert jobs is not None
+    if no_jobserver or jobs == 0:
+        extra_ninja_arguments = [f"-j{jobs}", *(extra_ninja_arguments or [])]
+    else:
         context = jobserver(jobs)
 
     with context:
