@@ -57,11 +57,13 @@ class ScopedRule(ScopedValue[Rule[OutputType]], Generic[OutputType]):
     def set(self, value: Rule[OutputType]) -> Scope:
         if value.single_input != self.single_input:
             raise ValueError(
-                "Invalid rule provided: expected a rule which accepts a single input!"
+                "Invalid rule provided: expected a rule which accepts "
+                + ("a single input!" if self.single_input else "multiple inputs!")
             )
         if value.single_output != self.single_output:
             raise ValueError(
-                "Invalid rule provided: expected a rule which accepts a single input!"
+                "Invalid rule provided: expected a rule which accepts "
+                + ("a single output!" if self.single_output else "multiple outputs!")
             )
 
         return super().set(value)
