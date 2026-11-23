@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.1.15] - 2026-11-24
+
+https://github.com/bob-hq/bob/compare/v0.1.14...v0.1.15
+
+## Added
+
+- `shell_output_rule` now accepts `check`, which fails the build when the command fails.
+- Bob now shows "Configuring" while configuring outside of Ninja when pretty is on.
+
+## Changed
+
+- Rule inputs, implicit dependencies, outputs, variables and `subbob` configs now accept any `Sequence` or `Mapping`. A single string where a list is expected now raises a `TypeError`.
+
+## Fixed
+
+- `-c KEY` without `=` is now an error rather than setting `KEY` to an empty string. Use `-c KEY=` for an empty value.
+- Paths starting with `$name` are no longer expanded as Ninja variables.
+- A single `Path` or target as a variable's value is now shell-quoted.
+- Bob's own commands now pass `--` before operands, so paths and targets starting with `-` work.
+- `-j` is now passed to Ninja when not using a jobserver, and `-j 0` works.
+- `shell(..., check=False)` with a failing command no longer reconfigures forever.
+- Pretty output now shows failures of `shell` commands, and no longer breaks in very narrow terminals.
+
+
 ## [0.1.14] - 2026-11-23
 
 https://github.com/bob-hq/bob/compare/v0.1.13...v0.1.14
